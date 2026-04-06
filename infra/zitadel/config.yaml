@@ -1,0 +1,37 @@
+Log:
+  Level: info
+  Formatter:
+    Format: text
+
+Port: 8080
+ExternalDomain: localhost
+ExternalPort: 8080
+ExternalSecure: false
+
+TLS:
+  Enabled: false
+
+Database:
+  Postgres:
+    Host: postgres
+    Port: 5432
+    Database: zitadel
+    MaxOpenConns: 20
+    MaxIdleConns: 10
+    MaxConnLifetime: 30m
+    MaxConnIdleTime: 5m
+    User:
+      Username: postgres
+      Password: ${POSTGRES_ROOT_PASSWORD}
+      SSL:
+        Mode: disable
+    Admin:
+      Username: postgres
+      Password: ${POSTGRES_ROOT_PASSWORD}
+      SSL:
+        Mode: disable
+
+DefaultInstance:
+  Language: pt
+  Org:
+    Name: Nutrometra Internal

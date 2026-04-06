@@ -1,0 +1,12 @@
+FirstInstance:
+  Org:
+    Name: Nutrometra
+    Human:
+      UserName: admin
+      FirstName: Admin
+      LastName: Nutrometra
+      Email:
+        Address: admin@nutrometra.local
+        Verified: true
+      Password: Admin1234!
+      PasswordChangeRequired: false
