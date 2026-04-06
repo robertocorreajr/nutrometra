@@ -1,6 +1,7 @@
 package identity
 
 import (
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -12,10 +13,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// AuthMiddleware validates the JWT and injects the Zitadel subject and email
-// into the request context. Does NOT resolve the internal user UUID — that is
-// done by UserResolverMiddleware.
-// If validator is nil (e.g. in tests), any token triggers 401.
+// AuthMiddleware validates the JWT and stores the Zitadel subject and email in
+// the request context. Does NOT resolve the internal user UUID — that is done
+// by UserResolverMiddleware.
+// If the token is absent, returns 401 immediately.
+// If validator is nil and a token is present, returns 401 (validator not configured).
 func AuthMiddleware(validator *oidc.Validator) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -36,16 +38,16 @@ func AuthMiddleware(validator *oidc.Validator) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Store Zitadel subject and email; UserResolverMiddleware resolves the UUID.
-			ctx := r.Context()
-			ctx = domain.SetExternalAuthInContext(ctx, claims.Subject, claims.Email)
+			// Store Zitadel subject and email; UserResolverMiddleware converts to internal UUID.
+			ctx := domain.SetExternalAuthInContext(r.Context(), claims.Subject, claims.Email)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
 // ExtractBearerToken extracts the token from Authorization: Bearer <token>.
-// Returns empty string if the header is missing or not Bearer format.
+// The "bearer" scheme prefix is matched case-insensitively per RFC 7235.
+// Returns empty string if the header is absent, scheme is not bearer, or token is empty.
 func ExtractBearerToken(r *http.Request) string {
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
@@ -58,29 +60,42 @@ func ExtractBearerToken(r *http.Request) string {
 	return strings.TrimSpace(parts[1])
 }
 
-// UserResolverMiddleware upserts the user in the DB based on the Zitadel subject
-// and injects the internal UUID into the context. Must run after AuthMiddleware.
+// UserResolverMiddleware upserts the user in the DB using the Zitadel subject as
+// the external_auth_id, then injects the internal UUID into the context.
+// Must run after AuthMiddleware.
+//
+// Pass-through behaviour: if no external auth is present in the context (e.g.
+// on a public route that does not go through AuthMiddleware), the request is
+// forwarded without modification. Downstream handlers on protected routes must
+// call domain.UserIDFromContext and handle the missing-UUID case explicitly.
 func UserResolverMiddleware(pool *pgxpool.Pool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			subject, email, ok := domain.ExternalAuthFromContext(r.Context())
 			if !ok {
+				// No authenticated identity in context — pass through to handler.
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			var userID uuid.UUID
+			// Argument order: $1 = email, $2 = external_auth_id (Zitadel subject).
+			// ON CONFLICT targets the unique index on external_auth_id.
 			err := pool.QueryRow(r.Context(),
-				`INSERT INTO users (id, email, external_auth_id, status, created_at, updated_at)
-				 VALUES (gen_random_uuid(), $1, $2, 'active', NOW(), NOW())
+				`INSERT INTO users (id, email, external_auth_id, status, last_login_at, created_at, updated_at)
+				 VALUES (gen_random_uuid(), $1, $2, 'active', NOW(), NOW(), NOW())
 				 ON CONFLICT (external_auth_id) DO UPDATE SET
-				   email = EXCLUDED.email,
-				   last_login_at = NOW(),
-				   updated_at = NOW()
+				   email          = EXCLUDED.email,
+				   last_login_at  = NOW(),
+				   updated_at     = NOW()
 				 RETURNING id`,
-				email, subject,
+				email, subject, // $1=email, $2=external_auth_id
 			).Scan(&userID)
 			if err != nil {
+				slog.ErrorContext(r.Context(), "failed to resolve user",
+					"external_auth_id", subject,
+					"error", err,
+				)
 				server.RenderError(w, r, http.StatusInternalServerError, "user_resolve_failed", "Failed to resolve user")
 				return
 			}

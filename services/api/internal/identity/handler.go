@@ -20,7 +20,7 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 		server.RenderError(w, r, http.StatusUnauthorized, "unauthenticated", "Not authenticated")
 		return
 	}
-	email, _ := r.Context().Value(domain.ContextKeyUserEmail).(string)
+	email, _ := domain.UserEmailFromContext(r.Context())
 
 	server.RenderJSON(w, http.StatusOK, meResponse{
 		UserID: userID.String(),
