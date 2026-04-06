@@ -70,6 +70,12 @@ Não é permitido remover do desenho inicial:
 11. Sempre considerar que o paciente acessará majoritariamente pelo celular.
 12. Sempre considerar que o nutricionista pode atender em múltiplos endereços e também online.
 13. Sempre considerar que o sistema precisa lidar com assinatura, cobrança, trial e recursos por plano.
+14. Ao concluir uma tarefa implementável, o fluxo padrão é sempre:
+   - criar ou atualizar uma branch dedicada;
+   - fazer um commit atômico das mudanças;
+   - dar push da branch para o remoto;
+   - só então iniciar a próxima tarefa.
+   Se o push estiver bloqueado por falta de acesso, problema de rede ou política do repositório, interromper o fluxo e informar o bloqueio.
 
 ## Módulos obrigatórios do produto
 - identidade e acesso;
@@ -161,3 +167,49 @@ Sempre que gerar uma implementação, trazer:
 7. código;
 8. testes;
 9. riscos e pontos pendentes.
+
+## Política de comandos sugerida
+Use esta política para reduzir pedidos de autorização no Claude Code sem liberar comandos perigosos por padrão.
+
+### Allowlist recomendada
+- `pwd`
+- `ls`
+- `find`
+- `rg`
+- `sed`
+- `cat`
+- `head`
+- `tail`
+- `wc`
+- `git status`
+- `git diff`
+- `git log`
+- `git show`
+- `git branch`
+- `git remote -v`
+- `git fetch`
+- `git add`
+- `git commit`
+- `git push`
+- comandos de teste e validação do projeto, como `go test`, `go test ./...`, `npm test`, `npm run test`, `make test`
+- comandos de lint e build do projeto, como `go build`, `make build`, `npm run lint`, `npm run build`
+
+### Denylist recomendada
+- `rm -rf`
+- `rm -fr`
+- `git reset --hard`
+- `git clean -fdx`
+- `git checkout --`
+- `git restore --source`
+- `sudo`
+- `chmod -R 777`
+- `chown -R`
+- `curl | sh`
+- `wget | sh`
+- `dd`
+- `mkfs`
+- comandos que instalem dependências globais, como `npm install -g`, `pnpm add -g`, `yarn global add`, `pip install --user`
+- comandos que alterem produção, deploy ou infraestrutura sem aprovação explícita
+
+### Regra operacional
+Se um comando não estiver na allowlist e não for claramente de leitura, o Claude Code deve parar e pedir autorização antes de executar.
