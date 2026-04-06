@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -18,11 +19,29 @@ func main() {
 		direction = os.Args[1]
 	}
 
-	dsn := "pgx5://" + os.Getenv("POSTGRES_USER") + ":" +
-		os.Getenv("POSTGRES_PASSWORD") + "@" +
-		os.Getenv("POSTGRES_HOST") + ":" +
-		os.Getenv("POSTGRES_PORT") + "/" +
-		os.Getenv("POSTGRES_DB") + "?sslmode=disable"
+	required := []string{
+		"POSTGRES_USER", "POSTGRES_PASSWORD",
+		"POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB",
+	}
+	for _, key := range required {
+		if os.Getenv(key) == "" {
+			log.Fatalf("migrate: missing required environment variable: %s", key)
+		}
+	}
+
+	sslMode := os.Getenv("POSTGRES_SSLMODE")
+	if sslMode == "" {
+		sslMode = "require"
+	}
+
+	dsn := fmt.Sprintf("pgx5://%s:%s@%s:%s/%s?sslmode=%s",
+		os.Getenv("POSTGRES_USER"),
+		os.Getenv("POSTGRES_PASSWORD"),
+		os.Getenv("POSTGRES_HOST"),
+		os.Getenv("POSTGRES_PORT"),
+		os.Getenv("POSTGRES_DB"),
+		sslMode,
+	)
 
 	m, err := migrate.New("file://migrations", dsn)
 	if err != nil {

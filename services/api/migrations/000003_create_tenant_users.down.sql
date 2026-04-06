@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS tenant_users;
+DROP TABLE IF EXISTS tenant_users CASCADE;

@@ -16,3 +16,4 @@ CREATE TABLE tenant_subscriptions (
 );
 
 CREATE INDEX idx_tenant_subscriptions_tenant_status ON tenant_subscriptions(tenant_id, status);
+CREATE INDEX idx_tenant_subscriptions_tenant_id     ON tenant_subscriptions(tenant_id);

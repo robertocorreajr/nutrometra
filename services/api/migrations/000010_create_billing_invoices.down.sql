@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS billing_invoices;
+DROP TABLE IF EXISTS billing_invoices CASCADE;

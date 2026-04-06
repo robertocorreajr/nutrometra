@@ -3,7 +3,7 @@ CREATE TABLE plan_features (
     plan_id       UUID NOT NULL REFERENCES subscription_plans(id) ON DELETE CASCADE,
     feature_key   VARCHAR(128) NOT NULL,
     enabled       BOOLEAN NOT NULL DEFAULT TRUE,
-    limit_value   INTEGER,
+    limit_value   BIGINT,
     trial_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     trial_days    INTEGER,
     metadata_json JSONB,

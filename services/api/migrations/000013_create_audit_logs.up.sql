@@ -16,4 +16,5 @@ CREATE TABLE audit_logs (
 CREATE INDEX idx_audit_logs_tenant     ON audit_logs(tenant_id);
 CREATE INDEX idx_audit_logs_entity     ON audit_logs(entity_type, entity_id);
 CREATE INDEX idx_audit_logs_actor      ON audit_logs(actor_user_id);
-CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
+CREATE INDEX idx_audit_logs_created_at        ON audit_logs(created_at DESC);
+CREATE INDEX idx_audit_logs_tenant_created_at ON audit_logs(tenant_id, created_at DESC);
