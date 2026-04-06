@@ -1,3 +1,6 @@
+-- DEV ENVIRONMENT ONLY — credentials below are for local development
+-- App user: nutrometra / nutrometra_dev
+
 -- Banco da aplicação
 CREATE DATABASE nutrometra
     WITH ENCODING 'UTF8'

@@ -1,8 +1,7 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_ROOT_PASSWORD:-postgres}
@@ -19,6 +18,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     volumes:
       - redis_data:/data
     ports:
@@ -43,11 +43,11 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/debug/healthz || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/.well-known/openid-configuration > /dev/null || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 15
-      start_period: 30s
+      retries: 20
+      start_period: 60s
 
   api:
     build:

@@ -1,3 +1,5 @@
+# DEV CREDENTIALS ONLY — never use in production
+# Admin login: admin@nutrometra.local / Admin1234!
 FirstInstance:
   Org:
     Name: Nutrometra
