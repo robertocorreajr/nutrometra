@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"nutrometra/api/internal/identity/domain"
@@ -13,23 +15,25 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// sentinel errors for the validator.
+// Sentinel errors.
 var (
 	ErrNotInitialized = errors.New("validator not initialized")
 	ErrTokenInvalid   = errors.New("token validation failed")
+	ErrInitFailed     = errors.New("validator initialization failed")
 )
 
-// Validator validates OIDC JWTs issued by Zitadel.
+// Validator validates OIDC JWTs issued by Zitadel via JWKS.
 // Call Init() before using Validate().
-// Use ValidateRaw() for testing without JWKS (no signature verification).
 type Validator struct {
-	issuer   string
-	audience string
-	jwks     keyfunc.Keyfunc
+	issuer     string
+	audience   string
+	mu         sync.RWMutex // protects jwks and cancelJWKS
+	jwks       keyfunc.Keyfunc
+	cancelJWKS context.CancelFunc
 }
 
-// NewValidator creates a new Validator. It does NOT make any network calls.
-// You must call Init() before using Validate().
+// NewValidator creates a Validator. No network calls at construction.
+// Call Init(ctx) before using Validate.
 func NewValidator(issuer, audience string) *Validator {
 	return &Validator{
 		issuer:   strings.TrimRight(issuer, "/"),
@@ -37,55 +41,87 @@ func NewValidator(issuer, audience string) *Validator {
 	}
 }
 
-// Init fetches the JWKS from the Zitadel issuer. It retries up to 10 times
-// with 3s delay between attempts. Respects context cancellation.
+// Init fetches the JWKS from {issuer}/oauth/v2/keys and starts the
+// background refresh goroutine. Retries up to 10 times with 3s delay.
+// Respects context cancellation.
 func (v *Validator) Init(ctx context.Context) error {
+	u, err := url.Parse(v.issuer)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return fmt.Errorf("%w: invalid issuer URL %q (must be absolute with scheme and host)", ErrInitFailed, v.issuer)
+	}
+
 	jwksURL := v.issuer + "/oauth/v2/keys"
 
-	var lastErr error
 	const maxRetries = 10
 	const retryDelay = 3 * time.Second
 
+	var lastErr error
 	for attempt := range maxRetries {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("%w: context cancelled during JWKS init", ErrTokenInvalid)
+			return fmt.Errorf("%w: context cancelled", ErrInitFailed)
 		default:
 		}
 
-		jwks, err := keyfunc.NewDefaultCtx(ctx, []string{jwksURL})
+		// Use a long-lived background context for the refresh goroutine lifecycle.
+		// Cancellation is owned by Close().
+		jwksCtx, cancel := context.WithCancel(context.Background())
+		jwks, err := keyfunc.NewDefaultCtx(jwksCtx, []string{jwksURL})
 		if err == nil {
+			v.mu.Lock()
+			if v.cancelJWKS != nil {
+				v.cancelJWKS() // stop any previous refresh goroutine
+			}
 			v.jwks = jwks
+			v.cancelJWKS = cancel
+			v.mu.Unlock()
 			return nil
 		}
-
+		cancel() // clean up goroutine if init failed
 		lastErr = err
 
 		if attempt < maxRetries-1 {
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("%w: context cancelled during JWKS init", ErrTokenInvalid)
+				return fmt.Errorf("%w: context cancelled", ErrInitFailed)
 			case <-time.After(retryDelay):
 			}
 		}
 	}
 
-	return fmt.Errorf("failed to fetch JWKS after %d attempts: %w", maxRetries, lastErr)
+	// lastErr is intentionally not wrapped to avoid leaking network/TLS details into logs.
+	_ = lastErr
+	return fmt.Errorf("%w: failed to fetch JWKS after %d attempts", ErrInitFailed, maxRetries)
 }
 
-// Validate validates a JWT token using the JWKS keys fetched during Init().
+// Close stops the background JWKS refresh goroutine. Call during graceful shutdown.
+func (v *Validator) Close() {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	if v.cancelJWKS != nil {
+		v.cancelJWKS()
+		v.cancelJWKS = nil
+		v.jwks = nil
+	}
+}
+
+// Validate validates a JWT token against the JWKS fetched during Init.
 //
 // Security properties enforced:
-//   - Only RS256 signing algorithm is accepted.
+//   - Only RS256 signing algorithm accepted (prevents algorithm confusion attacks).
 //   - Issuer must match exactly.
 //   - Audience must contain the configured client ID.
 //   - Expiry (exp) is required and validated.
 //   - Issued-at (iat) is validated.
-//   - Signature is verified against the JWKS keys.
+//   - Signature verified against JWKS keys.
 //
-// Returns opaque errors that do not leak key material or internal details.
+// Returns opaque errors that do not expose key material or internal details.
 func (v *Validator) Validate(ctx context.Context, rawToken string) (*domain.Claims, error) {
-	if v.jwks == nil {
+	v.mu.RLock()
+	jwks := v.jwks
+	v.mu.RUnlock()
+
+	if jwks == nil {
 		return nil, fmt.Errorf("%w: call Init() first", ErrNotInitialized)
 	}
 
@@ -98,7 +134,7 @@ func (v *Validator) Validate(ctx context.Context, rawToken string) (*domain.Clai
 	)
 
 	var claims zitadelClaims
-	token, err := parser.ParseWithClaims(rawToken, &claims, v.jwks.KeyfuncCtx(ctx))
+	token, err := parser.ParseWithClaims(rawToken, &claims, jwks.KeyfuncCtx(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrTokenInvalid, sanitizeError(err))
 	}
@@ -118,56 +154,15 @@ func (v *Validator) Validate(ctx context.Context, rawToken string) (*domain.Clai
 	}, nil
 }
 
-// ValidateRaw parses a JWT token WITHOUT verifying the signature.
-// This method exists for unit tests that cannot reach a real Zitadel instance.
-// It still validates token structure, expiry, issuer, and audience.
-//
-// DO NOT use this method in production code paths.
-func (v *Validator) ValidateRaw(_ context.Context, rawToken string) (*domain.Claims, error) {
-	parser := jwt.NewParser(
-		jwt.WithExpirationRequired(),
-		jwt.WithIssuer(v.issuer),
-		jwt.WithAudience(v.audience),
-		jwt.WithIssuedAt(),
-	)
-
-	var claims zitadelClaims
-	token, _, err := parser.ParseUnverified(rawToken, &claims)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrTokenInvalid, sanitizeError(err))
-	}
-
-	// ParseUnverified does not run the claims validator, so we must do it manually.
-	validator := jwt.NewValidator(
-		jwt.WithExpirationRequired(),
-		jwt.WithIssuer(v.issuer),
-		jwt.WithAudience(v.audience),
-		jwt.WithIssuedAt(),
-	)
-	if err := validator.Validate(token.Claims); err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrTokenInvalid, sanitizeError(err))
-	}
-
-	if claims.Subject == "" {
-		return nil, fmt.Errorf("%w: missing subject claim", ErrTokenInvalid)
-	}
-
-	return &domain.Claims{
-		Subject: claims.Subject,
-		Email:   claims.Email,
-		Name:    claims.Name,
-	}, nil
-}
-
-// zitadelClaims represents the JWT claims structure from Zitadel tokens.
+// zitadelClaims maps the JWT fields emitted by Zitadel.
 type zitadelClaims struct {
 	jwt.RegisteredClaims
 	Email string `json:"email"`
 	Name  string `json:"name"`
 }
 
-// sanitizeError strips internal details from JWT errors to prevent
-// leaking key material or internal architecture details.
+// sanitizeError maps JWT library errors to opaque messages, preventing
+// leakage of key material or internal implementation details.
 func sanitizeError(err error) string {
 	switch {
 	case errors.Is(err, jwt.ErrTokenMalformed):
