@@ -13,4 +13,4 @@ CREATE TABLE billing_invoices (
     updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_billing_invoices_tenant ON billing_invoices(tenant_id);
+CREATE INDEX idx_billing_invoices_tenant_status ON billing_invoices(tenant_id, status);
