@@ -22,6 +22,8 @@ func TestNewEntry(t *testing.T) {
 		audit.WithEntity("tenant", entityID),
 		audit.WithAction("created"),
 		audit.WithIPAddress("192.168.1.1"),
+		audit.WithUserAgent("Mozilla/5.0"),
+		audit.WithReason("signup"),
 	)
 
 	assert.Equal(t, tenantID, *entry.TenantID)
@@ -31,19 +33,44 @@ func TestNewEntry(t *testing.T) {
 	assert.Equal(t, entityID, *entry.EntityID)
 	assert.Equal(t, "created", entry.Action)
 	assert.NotEqual(t, uuid.Nil, entry.ID)
+	assert.Equal(t, "192.168.1.1", entry.IPAddress)
+	assert.Equal(t, "Mozilla/5.0", *entry.UserAgent)
+	assert.Equal(t, "signup", *entry.Reason)
 }
 
-func TestService_Write_RequiresDB(t *testing.T) {
-	// Smoke test: New retorna sem pânico
-	svc := audit.NewService(nil)
-	require.NotNil(t, svc)
+func TestWithIPAddress_StripsPort(t *testing.T) {
+	entry := audit.NewEntry(audit.WithIPAddress("10.0.0.1:54321"))
+	assert.Equal(t, "10.0.0.1", entry.IPAddress)
+}
 
-	// Write com db nil deve retornar erro, não panicar
+func TestWithIPAddress_InvalidIsIgnored(t *testing.T) {
+	entry := audit.NewEntry(audit.WithIPAddress("not-an-ip"))
+	assert.Equal(t, "", entry.IPAddress)
+}
+
+func TestNewService_NotNil(t *testing.T) {
+	svc := audit.NewService()
+	require.NotNil(t, svc)
+}
+
+func TestService_Write_NilExecutor(t *testing.T) {
+	svc := audit.NewService()
 	entry := audit.NewEntry(
 		audit.WithActor(uuid.New(), audit.ScopeSystem),
 		audit.WithEntity("test", uuid.New()),
 		audit.WithAction("test"),
 	)
-	err := svc.Write(context.Background(), entry)
+	err := svc.Write(context.Background(), nil, entry)
+	assert.Error(t, err)
+}
+
+func TestService_Write_EmptyActorScope(t *testing.T) {
+	svc := audit.NewService()
+	// Entry sem WithActor — ActorScope fica vazia
+	entry := audit.NewEntry(
+		audit.WithEntity("test", uuid.New()),
+		audit.WithAction("test"),
+	)
+	err := svc.Write(context.Background(), nil, entry)
 	assert.Error(t, err)
 }

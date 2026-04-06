@@ -2,12 +2,13 @@ package audit
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // Scope define o escopo do ator que gerou o evento.
@@ -18,6 +19,12 @@ const (
 	ScopeBackoffice Scope = "backoffice"
 	ScopeSystem     Scope = "system"
 )
+
+// Executor é satisfeito por *pgxpool.Pool e por pgx.Tx.
+// Permite que Write seja chamado dentro de uma transação existente.
+type Executor interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+}
 
 // Entry representa um evento de auditoria.
 type Entry struct {
@@ -30,7 +37,7 @@ type Entry struct {
 	Action       string
 	Reason       *string
 	MetadataJSON []byte
-	IPAddress    *net.IP
+	IPAddress    string // armazenado como string pós-parse para simplificar callers
 	UserAgent    *string
 	CreatedAt    time.Time
 }
@@ -38,7 +45,7 @@ type Entry struct {
 // Option é uma função de configuração de Entry.
 type Option func(*Entry)
 
-// NewEntry cria um Entry com ID e timestamp gerados.
+// NewEntry cria um Entry com ID e timestamp gerados automaticamente.
 func NewEntry(opts ...Option) Entry {
 	e := Entry{
 		ID:        uuid.New(),
@@ -72,11 +79,16 @@ func WithAction(action string) Option {
 	return func(e *Entry) { e.Action = action }
 }
 
-func WithIPAddress(ip string) Option {
+// WithIPAddress aceita endereços com ou sem porta (ex: "1.2.3.4" ou "1.2.3.4:5678").
+// Input inválido é ignorado silenciosamente.
+func WithIPAddress(ipOrAddr string) Option {
 	return func(e *Entry) {
-		parsed := net.ParseIP(ip)
-		if parsed != nil {
-			e.IPAddress = &parsed
+		host := ipOrAddr
+		if h, _, err := net.SplitHostPort(ipOrAddr); err == nil {
+			host = h
+		}
+		if parsed := net.ParseIP(host); parsed != nil {
+			e.IPAddress = parsed.String()
 		}
 	}
 }
@@ -85,34 +97,57 @@ func WithReason(reason string) Option {
 	return func(e *Entry) { e.Reason = &reason }
 }
 
+func WithUserAgent(ua string) Option {
+	return func(e *Entry) { e.UserAgent = &ua }
+}
+
+func WithMetadata(v any) Option {
+	return func(e *Entry) {
+		if b, err := json.Marshal(v); err == nil {
+			e.MetadataJSON = b
+		}
+	}
+}
+
 // Service grava eventos de auditoria no banco.
-type Service struct {
-	pool *pgxpool.Pool
+// É stateless — o executor (pool ou tx) é passado em cada chamada de Write
+// para permitir participação na mesma transação da operação auditada.
+type Service struct{}
+
+func NewService() *Service {
+	return &Service{}
 }
 
-func NewService(pool *pgxpool.Pool) *Service {
-	return &Service{pool: pool}
-}
-
-// Write grava um Entry em audit_logs. Deve ser chamado dentro da mesma transação da operação.
-func (s *Service) Write(ctx context.Context, e Entry) error {
-	if s.pool == nil {
-		return fmt.Errorf("audit: db pool is nil")
+// Write grava um Entry em audit_logs.
+// db pode ser *pgxpool.Pool ou pgx.Tx — use pgx.Tx para garantir atomicidade
+// com a operação que está sendo auditada.
+func (s *Service) Write(ctx context.Context, db Executor, e Entry) error {
+	if db == nil {
+		return fmt.Errorf("audit: executor is nil")
+	}
+	if e.ActorScope == "" {
+		return fmt.Errorf("audit: actor_scope is required")
 	}
 
-	ipStr := (*string)(nil)
-	if e.IPAddress != nil {
-		str := e.IPAddress.String()
-		ipStr = &str
+	var ipArg *string
+	if e.IPAddress != "" {
+		ipArg = &e.IPAddress
 	}
 
-	_, err := s.pool.Exec(ctx,
+	var metaArg *[]byte
+	if len(e.MetadataJSON) > 0 {
+		metaArg = &e.MetadataJSON
+	}
+
+	_, err := db.Exec(ctx,
 		`INSERT INTO audit_logs
-			(id, tenant_id, actor_user_id, actor_scope, entity_type, entity_id, action, reason, ip_address, created_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::inet,$10)`,
+			(id, tenant_id, actor_user_id, actor_scope,
+			 entity_type, entity_id, action, reason,
+			 metadata_json, ip_address, user_agent, created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::inet,$11,$12)`,
 		e.ID, e.TenantID, e.ActorUserID, string(e.ActorScope),
 		e.EntityType, e.EntityID, e.Action, e.Reason,
-		ipStr, e.CreatedAt,
+		metaArg, ipArg, e.UserAgent, e.CreatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("audit: write: %w", err)
