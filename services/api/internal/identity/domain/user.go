@@ -29,11 +29,12 @@ type Claims struct {
 type contextKey string
 
 const (
-	ContextKeyUserID     contextKey = "user_id"
-	ContextKeyUserEmail  contextKey = "user_email"
-	ContextKeyTenantID   contextKey = "tenant_id"
-	ContextKeyActorRole  contextKey = "actor_role"
-	ContextKeyActorScope contextKey = "actor_scope"
+	ContextKeyUserID         contextKey = "user_id"
+	ContextKeyUserEmail      contextKey = "user_email"
+	ContextKeyTenantID       contextKey = "tenant_id"
+	ContextKeyActorRole      contextKey = "actor_role"
+	ContextKeyActorScope     contextKey = "actor_scope"
+	ContextKeyExternalAuthID contextKey = "external_auth_id"
 )
 
 // SetUserInContext adiciona user_id e user_email ao contexto.
@@ -64,4 +65,22 @@ func SetTenantInContext(ctx context.Context, tenantID uuid.UUID) context.Context
 func TenantIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	id, ok := ctx.Value(ContextKeyTenantID).(uuid.UUID)
 	return id, ok
+}
+
+// SetExternalAuthInContext stores the Zitadel subject and email before UUID resolution.
+// Used by AuthMiddleware before UserResolverMiddleware runs.
+func SetExternalAuthInContext(ctx context.Context, subject, email string) context.Context {
+	ctx = context.WithValue(ctx, ContextKeyExternalAuthID, subject)
+	ctx = context.WithValue(ctx, ContextKeyUserEmail, email)
+	return ctx
+}
+
+// ExternalAuthFromContext retrieves the Zitadel subject and email stored by AuthMiddleware.
+func ExternalAuthFromContext(ctx context.Context) (subject, email string, ok bool) {
+	subject, ok = ctx.Value(ContextKeyExternalAuthID).(string)
+	if !ok || subject == "" {
+		return "", "", false
+	}
+	email, _ = ctx.Value(ContextKeyUserEmail).(string)
+	return subject, email, true
 }
