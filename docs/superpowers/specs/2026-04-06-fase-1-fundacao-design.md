@@ -292,7 +292,13 @@ Usado como guard em handlers e como middleware configurável por rota.
 
 ---
 
-## 14. Fora de escopo desta fase
+## 14. Notas para fases posteriores
+
+- **CRN obrigatório no cadastro de nutricionista (Fase 2):** a tabela `professionals` deve registrar `registration_type = CRN`, `registration_number` (ex: `12345/P`) e `registration_state` (sigla do estado do conselho regional, ex: `SP`). O CRN deve ser exibido nos documentos clínicos e no perfil público do profissional.
+
+---
+
+## 15. Fora de escopo desta fase
 
 - Lógica clínica (pacientes, prontuário, agenda, dietas)
 - Geração de PDF

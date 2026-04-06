@@ -157,8 +157,9 @@
 - tenant_id
 - user_id nullable
 - full_name
-- registration_type
-- registration_number
+- registration_type (`CRN`, `CRO`, `CRM`, `other`) — para nutricionistas, sempre `CRN`
+- registration_number — número do registro no conselho (ex: `12345/P`)
+- registration_state — sigla do estado do conselho regional (ex: `SP`, `RJ`) — obrigatório para `CRN`
 - document_number nullable
 - phone nullable
 - email nullable
