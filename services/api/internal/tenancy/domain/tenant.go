@@ -18,12 +18,23 @@ const (
 	TenantStatusCancelled TenantStatus = "cancelled"
 )
 
+type TenantType string
+
+const (
+	TenantTypeSoloProfessional TenantType = "solo_professional"
+	TenantTypeClinic           TenantType = "clinic"
+	TenantTypeCompany          TenantType = "company"
+)
+
 type Tenant struct {
 	ID          uuid.UUID
-	Name        string
+	Type        TenantType
+	LegalName   string
+	DisplayName string
 	Slug        string
-	PlanID      *uuid.UUID
 	Status      TenantStatus
+	Timezone    string
+	Locale      string
 	TrialEndsAt *time.Time
 	CreatedAt   time.Time
 	UpdatedAt   time.Time

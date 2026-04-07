@@ -41,14 +41,15 @@ func TestTenant_IsCancelled(t *testing.T) {
 }
 
 func TestTenant_IsTrialing(t *testing.T) {
-	planID := uuid.New()
-
 	base := &domain.Tenant{
-		ID:     uuid.New(),
-		Name:   "Test",
-		Slug:   "test",
-		PlanID: &planID,
-		Status: domain.TenantStatusActive,
+		ID:          uuid.New(),
+		Type:        domain.TenantTypeSoloProfessional,
+		LegalName:   "Test Ltda",
+		DisplayName: "Test",
+		Slug:        "test",
+		Status:      domain.TenantStatusActive,
+		Timezone:    "America/Sao_Paulo",
+		Locale:      "pt-BR",
 	}
 
 	// nil TrialEndsAt → not trialing

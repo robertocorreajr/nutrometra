@@ -13,9 +13,9 @@ import (
 	"nutrometra/api/internal/tenancy/usecase"
 )
 
-// fakeTenantRepo is an in-memory implementation of TenantRepository for tests.
 type fakeTenantRepo struct {
 	tenants map[uuid.UUID]*domain.Tenant
+	members map[string]bool // key: "tenantID:userID"
 }
 
 func (f *fakeTenantRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.Tenant, error) {
@@ -35,24 +35,31 @@ func (f *fakeTenantRepo) GetBySlug(ctx context.Context, slug string) (*domain.Te
 	return nil, domain.ErrTenantNotFound
 }
 
+func (f *fakeTenantRepo) IsMember(ctx context.Context, tenantID, userID uuid.UUID) (bool, error) {
+	key := tenantID.String() + ":" + userID.String()
+	return f.members[key], nil
+}
+
 func newFakeRepo(tenants ...*domain.Tenant) *fakeTenantRepo {
 	m := make(map[uuid.UUID]*domain.Tenant, len(tenants))
 	for _, t := range tenants {
 		m[t.ID] = t
 	}
-	return &fakeTenantRepo{tenants: m}
+	return &fakeTenantRepo{tenants: m, members: make(map[string]bool)}
 }
 
 func sampleTenant() *domain.Tenant {
-	planID := uuid.New()
 	return &domain.Tenant{
-		ID:        uuid.New(),
-		Name:      "Acme Nutrition",
-		Slug:      "acme-nutrition",
-		PlanID:    &planID,
-		Status:    domain.TenantStatusActive,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:          uuid.New(),
+		Type:        domain.TenantTypeClinic,
+		LegalName:   "Acme Nutrition Ltda",
+		DisplayName: "Acme Nutrition",
+		Slug:        "acme-nutrition",
+		Status:      domain.TenantStatusActive,
+		Timezone:    "America/Sao_Paulo",
+		Locale:      "pt-BR",
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 }
 
@@ -64,7 +71,7 @@ func TestTenantUsecase_GetByID_Found(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, tenant.ID, got.ID)
-	assert.Equal(t, tenant.Name, got.Name)
+	assert.Equal(t, tenant.DisplayName, got.DisplayName)
 	assert.Equal(t, tenant.Slug, got.Slug)
 }
 
@@ -95,4 +102,20 @@ func TestTenantUsecase_GetBySlug_NotFound(t *testing.T) {
 
 	assert.Nil(t, got)
 	assert.ErrorIs(t, err, domain.ErrTenantNotFound)
+}
+
+func TestTenantUsecase_IsMember(t *testing.T) {
+	tenant := sampleTenant()
+	userID := uuid.New()
+	repo := newFakeRepo(tenant)
+	repo.members[tenant.ID.String()+":"+userID.String()] = true
+	uc := usecase.NewTenantUsecase(repo)
+
+	ok, err := uc.IsMember(context.Background(), tenant.ID, userID)
+	require.NoError(t, err)
+	assert.True(t, ok)
+
+	ok, err = uc.IsMember(context.Background(), tenant.ID, uuid.New())
+	require.NoError(t, err)
+	assert.False(t, ok)
 }
