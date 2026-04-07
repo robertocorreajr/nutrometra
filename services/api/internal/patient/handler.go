@@ -175,7 +175,7 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "patient_id"))
 	if err != nil {
 		server.RenderError(w, r, http.StatusBadRequest, "invalid_id", "Invalid patient ID")
 		return
@@ -201,7 +201,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "patient_id"))
 	if err != nil {
 		server.RenderError(w, r, http.StatusBadRequest, "invalid_id", "Invalid patient ID")
 		return
@@ -281,7 +281,7 @@ func (h *Handler) GenerateInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	patientID, err := uuid.Parse(chi.URLParam(r, "id"))
+	patientID, err := uuid.Parse(chi.URLParam(r, "patient_id"))
 	if err != nil {
 		server.RenderError(w, r, http.StatusBadRequest, "invalid_id", "Invalid patient ID")
 		return
@@ -409,7 +409,7 @@ func (h *Handler) UpsertProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	patientID, err := uuid.Parse(chi.URLParam(r, "id"))
+	patientID, err := uuid.Parse(chi.URLParam(r, "patient_id"))
 	if err != nil {
 		server.RenderError(w, r, http.StatusBadRequest, "invalid_id", "Invalid patient ID")
 		return
@@ -451,7 +451,7 @@ func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	patientID, err := uuid.Parse(chi.URLParam(r, "id"))
+	patientID, err := uuid.Parse(chi.URLParam(r, "patient_id"))
 	if err != nil {
 		server.RenderError(w, r, http.StatusBadRequest, "invalid_id", "Invalid patient ID")
 		return

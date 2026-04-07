@@ -223,7 +223,7 @@ func main() {
 			r.Route("/patients", func(r chi.Router) {
 				r.With(rbac.RequirePermission("patients:write", rbacRepo)).Post("/", patHandler.Create)
 				r.With(rbac.RequirePermission("patients:read", rbacRepo)).Get("/", patHandler.List)
-				r.Route("/{id}", func(r chi.Router) {
+				r.Route("/{patient_id}", func(r chi.Router) {
 					r.With(rbac.RequirePermission("patients:read", rbacRepo)).Get("/", patHandler.GetByID)
 					r.With(rbac.RequirePermission("patients:write", rbacRepo)).Put("/", patHandler.Update)
 					r.With(rbac.RequirePermission("patients:write", rbacRepo)).Post("/invites", patHandler.GenerateInvite)
