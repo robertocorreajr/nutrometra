@@ -9,11 +9,25 @@ import (
 	"syscall"
 	"time"
 
+	"nutrometra/api/internal/billing"
+	billingrepo "nutrometra/api/internal/billing/repository"
+	billinguc "nutrometra/api/internal/billing/usecase"
+	"nutrometra/api/internal/identity"
+	identityoidc "nutrometra/api/internal/identity/oidc"
+	"nutrometra/api/internal/platform/audit"
 	"nutrometra/api/internal/platform/config"
 	"nutrometra/api/internal/platform/db"
 	"nutrometra/api/internal/platform/logger"
+	"nutrometra/api/internal/platform/observability"
 	apiredis "nutrometra/api/internal/platform/redis"
 	"nutrometra/api/internal/platform/server"
+	"nutrometra/api/internal/rbac"
+	rbacrepo "nutrometra/api/internal/rbac/repository"
+	"nutrometra/api/internal/tenancy"
+	tenancyrepo "nutrometra/api/internal/tenancy/repository"
+	tenancyuc "nutrometra/api/internal/tenancy/usecase"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func main() {
@@ -27,6 +41,8 @@ func main() {
 	slog.SetDefault(log)
 
 	ctx := context.Background()
+
+	// --- Infrastructure ---
 
 	pool, err := db.New(ctx, cfg.Postgres)
 	if err != nil {
@@ -44,14 +60,76 @@ func main() {
 	defer redisClient.Close()
 	log.Info("redis connected")
 
-	srv := server.New(cfg.API.Port)
+	// --- OIDC Validator ---
 
-	// Temporary health endpoint (full observability added in Task 17)
-	srv.Router().Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		server.RenderJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	validator := identityoidc.NewValidator(cfg.Zitadel.Issuer, cfg.Zitadel.ClientID)
+	if err := validator.Init(ctx); err != nil {
+		log.Error("failed to initialize OIDC validator", "error", err)
+		os.Exit(1)
+	}
+	defer validator.Close()
+	log.Info("OIDC validator initialized")
+
+	// --- Repositories ---
+
+	tenancyRepo := tenancyrepo.NewPostgresRepository(pool)
+	rbacRepo := rbacrepo.New(pool)
+	billingRepo := billingrepo.New(pool)
+
+	// --- Services ---
+
+	auditSvc := audit.NewService()
+	tenancyUC := tenancyuc.NewTenantUsecase(tenancyRepo)
+	entitlementSvc := billinguc.NewEntitlementService(billingRepo)
+
+	// --- Handlers ---
+
+	tenancyHandler := tenancy.NewHandler(tenancyUC)
+	rbacHandler := rbac.NewHandler(rbacRepo, pool, auditSvc)
+	billingHandler := billing.NewHandler(billingRepo, entitlementSvc, pool, auditSvc)
+	healthChecker := observability.NewHealthChecker(pool, redisClient, cfg.Zitadel.Issuer)
+
+	// --- Middlewares ---
+
+	authMW := identity.AuthMiddleware(validator)
+	resolverMW := identity.UserResolverMiddleware(pool)
+	tenantMW := tenancy.TenantMiddleware(tenancyUC)
+
+	// --- Router ---
+
+	srv := server.New(cfg.API.Port)
+	r := srv.Router()
+
+	// Public routes
+	r.Get("/health", healthChecker.Health)
+	r.Get("/ready", healthChecker.Ready)
+	r.Get("/plans", billingHandler.ListPlans)
+
+	// Authenticated routes
+	r.Group(func(r chi.Router) {
+		r.Use(authMW, resolverMW)
+
+		r.Get("/auth/me", identity.MeHandler)
+
+		// Tenant-scoped routes (require X-Tenant-ID header + membership)
+		r.Group(func(r chi.Router) {
+			r.Use(tenantMW)
+
+			r.Get("/tenants/current", tenancyHandler.GetCurrent)
+
+			// Billing
+			r.Get("/subscription", billingHandler.GetSubscription)
+			r.Post("/subscription/trial", billingHandler.ActivateTrial)
+			r.Get("/entitlements", billingHandler.GetEntitlements)
+
+			// RBAC
+			r.Get("/roles", rbacHandler.ListRoles)
+			r.Post("/members/{member_id}/roles", rbacHandler.AssignRole)
+			r.Delete("/members/{member_id}/roles/{role_id}", rbacHandler.RevokeRole)
+		})
 	})
 
-	// TODO: register module routes (Tasks 13-18)
+	// --- Start server ---
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
