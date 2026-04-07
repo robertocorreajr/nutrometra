@@ -21,6 +21,15 @@ import (
 	"nutrometra/api/internal/clinical"
 	clinrepo "nutrometra/api/internal/clinical/repository"
 	clinuc "nutrometra/api/internal/clinical/usecase"
+	"nutrometra/api/internal/diet"
+	dietrepo "nutrometra/api/internal/diet/repository"
+	dietuc "nutrometra/api/internal/diet/usecase"
+	"nutrometra/api/internal/document"
+	docrepo "nutrometra/api/internal/document/repository"
+	docuc "nutrometra/api/internal/document/usecase"
+	"nutrometra/api/internal/export"
+	exportrepo "nutrometra/api/internal/export/repository"
+	exportuc "nutrometra/api/internal/export/usecase"
 	"nutrometra/api/internal/identity"
 	identityoidc "nutrometra/api/internal/identity/oidc"
 	"nutrometra/api/internal/patient"
@@ -31,8 +40,10 @@ import (
 	"nutrometra/api/internal/platform/db"
 	"nutrometra/api/internal/platform/logger"
 	"nutrometra/api/internal/platform/observability"
+	"nutrometra/api/internal/platform/pdfgen"
 	apiredis "nutrometra/api/internal/platform/redis"
 	"nutrometra/api/internal/platform/server"
+	"nutrometra/api/internal/platform/worker"
 	"nutrometra/api/internal/professional"
 	profrepo "nutrometra/api/internal/professional/repository"
 	profuc "nutrometra/api/internal/professional/usecase"
@@ -99,6 +110,9 @@ func main() {
 	clinRepo := clinrepo.New(pool)
 	bioRepo := biorepo.New(pool)
 	catRepo := catrepo.New(pool)
+	dietRepo := dietrepo.New(pool)
+	docRepo := docrepo.New(pool)
+	exportRepo := exportrepo.New(pool)
 
 	// --- Services ---
 
@@ -115,6 +129,13 @@ func main() {
 	bioUC := biouc.New(bioRepo)
 	catUC := catuc.New(catRepo)
 
+	// Phase 3 usecases
+	pdfGen := pdfgen.New()
+	bgWorker := worker.New(100)
+	dietUC := dietuc.New(dietRepo, pool)
+	docUC := docuc.New(docRepo, pool)
+	exportUC := exportuc.New(exportRepo, pool, entitlementAdapter, pdfGen, bgWorker)
+
 	// --- Handlers ---
 
 	tenancyHandler := tenancy.NewHandler(tenancyUC)
@@ -129,6 +150,11 @@ func main() {
 	clinHandler := clinical.NewHandler(clinUC, pool, auditSvc)
 	bioHandler := bioimpedance.NewHandler(bioUC, pool, auditSvc)
 	catHandler := catalog.NewHandler(catUC, pool, auditSvc)
+
+	// Phase 3 handlers
+	dietHandler := diet.NewHandler(dietUC, pool, auditSvc)
+	docHandler := document.NewHandler(docUC, pool, auditSvc)
+	exportHandler := export.NewHandler(exportUC, pool, auditSvc)
 
 	// --- Middlewares ---
 
@@ -246,6 +272,18 @@ func main() {
 
 					// Bioimpedance — measurements
 					r.With(rbac.RequirePermission("clinical:read", rbacRepo)).Get("/measurements", bioHandler.ListByPatient)
+
+					// Phase 3 — Diets
+					r.Route("/diets", func(r chi.Router) {
+						r.With(rbac.RequirePermission("diet:write", rbacRepo)).Post("/", dietHandler.CreateDiet)
+						r.With(rbac.RequirePermission("diet:read", rbacRepo)).Get("/", dietHandler.ListByPatient)
+					})
+
+					// Phase 3 — Documents
+					r.Route("/documents", func(r chi.Router) {
+						r.With(rbac.RequirePermission("document:write", rbacRepo)).Post("/", docHandler.Create)
+						r.With(rbac.RequirePermission("clinical:read", rbacRepo)).Get("/", docHandler.ListByPatient)
+					})
 				})
 			})
 
@@ -265,6 +303,54 @@ func main() {
 				})
 			})
 
+			// --- Phase 3: Prescription & Publishing ---
+
+			// Diets — standalone resources
+			r.Route("/diets/{id}", func(r chi.Router) {
+				r.With(rbac.RequirePermission("diet:read", rbacRepo)).Get("/", dietHandler.GetByID)
+				r.With(rbac.RequirePermission("diet:write", rbacRepo)).Put("/", dietHandler.Update)
+				r.With(rbac.RequirePermission("diet:write", rbacRepo)).Delete("/", dietHandler.Delete)
+				r.With(rbac.RequirePermission("diet:publish", rbacRepo)).Post("/publish", dietHandler.Publish)
+				r.With(rbac.RequirePermission("diet:write", rbacRepo)).Post("/archive", dietHandler.Archive)
+				r.With(rbac.RequirePermission("diet:write", rbacRepo)).Post("/new-version", dietHandler.NewVersion)
+
+				// Meals
+				r.Route("/meals", func(r chi.Router) {
+					r.With(rbac.RequirePermission("diet:write", rbacRepo)).Post("/", dietHandler.AddMeal)
+					r.With(rbac.RequirePermission("diet:write", rbacRepo)).Put("/{meal_id}", dietHandler.UpdateMeal)
+					r.With(rbac.RequirePermission("diet:write", rbacRepo)).Delete("/{meal_id}", dietHandler.RemoveMeal)
+
+					// Items
+					r.With(rbac.RequirePermission("diet:write", rbacRepo)).Post("/{meal_id}/items", dietHandler.AddMealItem)
+				})
+			})
+
+			// Diet items — standalone
+			r.With(rbac.RequirePermission("diet:write", rbacRepo)).Put("/diet-items/{item_id}", dietHandler.UpdateMealItem)
+			r.With(rbac.RequirePermission("diet:write", rbacRepo)).Delete("/diet-items/{item_id}", dietHandler.RemoveMealItem)
+			r.With(rbac.RequirePermission("diet:write", rbacRepo)).Post("/diet-items/{item_id}/substitutions", dietHandler.AddSubstitution)
+			r.With(rbac.RequirePermission("diet:write", rbacRepo)).Delete("/diet-substitutions/{sub_id}", dietHandler.RemoveSubstitution)
+
+			// Documents — standalone resources
+			r.Route("/documents/{id}", func(r chi.Router) {
+				r.With(rbac.RequirePermission("clinical:read", rbacRepo)).Get("/", docHandler.GetByID)
+				r.With(rbac.RequirePermission("document:write", rbacRepo)).Put("/", docHandler.Update)
+				r.With(rbac.RequirePermission("document:write", rbacRepo)).Post("/finalize", docHandler.Finalize)
+				r.With(rbac.RequirePermission("document:publish", rbacRepo)).Post("/publish", docHandler.Publish)
+				r.With(rbac.RequirePermission("document:write", rbacRepo)).Post("/new-version", docHandler.NewVersion)
+				r.With(rbac.RequirePermission("clinical:read", rbacRepo)).Get("/versions", docHandler.ListVersions)
+			})
+
+			// Exports
+			r.Route("/exports", func(r chi.Router) {
+				r.With(rbac.RequirePermission("export:pdf", rbacRepo)).Post("/", exportHandler.RequestExport)
+				r.With(rbac.RequirePermission("export:pdf", rbacRepo)).Get("/", exportHandler.List)
+				r.Route("/{id}", func(r chi.Router) {
+					r.With(rbac.RequirePermission("export:pdf", rbacRepo)).Get("/", exportHandler.GetByID)
+					r.With(rbac.RequirePermission("export:pdf", rbacRepo)).Get("/download", exportHandler.Download)
+				})
+			})
+
 			// Food Catalog
 			r.Route("/foods", func(r chi.Router) {
 				r.With(rbac.RequirePermission("diet:read", rbacRepo)).Get("/", catHandler.List)
@@ -279,7 +365,9 @@ func main() {
 		})
 	})
 
-	// --- Start server ---
+	// --- Start worker & server ---
+
+	bgWorker.Start(ctx)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -294,6 +382,7 @@ func main() {
 
 	<-quit
 	log.Info("shutting down...")
+	bgWorker.Stop()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
