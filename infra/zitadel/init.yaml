@@ -1,16 +1,16 @@
-# Admin password is injected via environment variable in docker-compose.yml:
-#   ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD
+# All sensitive values are injected via environment variables in docker-compose.yml.
+# See .env.example for the full list.
 FirstInstance:
   InstanceName: Nutrometra
   DefaultLanguage: pt
   Org:
     Name: Nutrometra
     Human:
-      UserName: admin
-      FirstName: Admin
-      LastName: Nutrometra
+      # Injected via ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME
+      # Injected via ZITADEL_FIRSTINSTANCE_ORG_HUMAN_FIRSTNAME
+      # Injected via ZITADEL_FIRSTINSTANCE_ORG_HUMAN_LASTNAME
       Email:
-        Address: admin@nutrometra.local
+        # Injected via ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_ADDRESS
         Verified: true
       PasswordChangeRequired: false
     Machine:
