@@ -15,12 +15,20 @@ type Config struct {
 	Redis    RedisConfig
 	Zitadel  ZitadelConfig
 	Stripe   StripeConfig
+	Google   GoogleConfig
 }
 
 type StripeConfig struct {
 	SecretKey      string
 	WebhookSecret  string
 	PublishableKey string
+}
+
+type GoogleConfig struct {
+	ClientID      string
+	ClientSecret  string
+	RedirectURL   string
+	EncryptionKey string // 64 hex chars for AES-256
 }
 
 type APIConfig struct {
@@ -104,6 +112,12 @@ func Load() (*Config, error) {
 			SecretKey:      envStr("STRIPE_SECRET_KEY", ""),
 			WebhookSecret:  envStr("STRIPE_WEBHOOK_SECRET", ""),
 			PublishableKey: envStr("STRIPE_PUBLISHABLE_KEY", ""),
+		},
+		Google: GoogleConfig{
+			ClientID:      envStr("GOOGLE_CLIENT_ID", ""),
+			ClientSecret:  envStr("GOOGLE_CLIENT_SECRET", ""),
+			RedirectURL:   envStr("GOOGLE_REDIRECT_URL", "http://localhost:8081/integrations/google/callback"),
+			EncryptionKey: envStr("GOOGLE_ENCRYPTION_KEY", ""),
 		},
 	}, nil
 }

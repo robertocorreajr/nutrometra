@@ -34,6 +34,7 @@ import (
 	exportuc "nutrometra/api/internal/export/usecase"
 	"nutrometra/api/internal/identity"
 	identityoidc "nutrometra/api/internal/identity/oidc"
+	googleint "nutrometra/api/internal/integrations/google"
 	"nutrometra/api/internal/patient"
 	patrepo "nutrometra/api/internal/patient/repository"
 	patuc "nutrometra/api/internal/patient/usecase"
@@ -195,6 +196,18 @@ func main() {
 	}
 	subHandler := billing.NewSubscriptionHandler(subUC, invoiceRepo, paymentRepo)
 	boHandler := backoffice.NewHandler(boRepo, subUC, overrideUC, invoiceRepo, paymentRepo)
+
+	// Phase 5: Google Calendar integration
+	var googleHandler *googleint.Handler
+	if cfg.Google.ClientID != "" && cfg.Google.EncryptionKey != "" {
+		googleCalProvider := googleint.NewGoogleCalendarProvider()
+		googleRepo := googleint.NewRepository(pool, cfg.Google.EncryptionKey)
+		googleHandler = googleint.NewHandler(pool, googleRepo, googleCalProvider, auditSvc, cfg.Google, jobQueue)
+		jobQueue.RegisterHandler("calendar_sync", googleint.NewSyncHandler(googleRepo, googleCalProvider, cfg.Google.EncryptionKey))
+		log.Info("Google Calendar integration initialized")
+	} else {
+		log.Warn("GOOGLE_CLIENT_ID or GOOGLE_ENCRYPTION_KEY not set — Google Calendar disabled")
+	}
 
 	// --- Middlewares ---
 
@@ -416,6 +429,16 @@ func main() {
 					r.With(rbac.RequirePermission("clinical:write", rbacRepo)).Delete("/", catHandler.Delete)
 				})
 			})
+
+			// Phase 5 — Google Calendar integration
+			if googleHandler != nil {
+				r.Route("/integrations/google", func(r chi.Router) {
+					r.With(rbac.RequirePermission("schedule:manage", rbacRepo)).Get("/authorize", googleHandler.Authorize)
+					r.With(rbac.RequirePermission("schedule:manage", rbacRepo)).Get("/callback", googleHandler.Callback)
+					r.With(rbac.RequirePermission("schedule:manage", rbacRepo)).Post("/disconnect", googleHandler.Disconnect)
+					r.With(rbac.RequirePermission("schedule:manage", rbacRepo)).Get("/status", googleHandler.Status)
+				})
+			}
 		})
 
 		// --- Phase 4: Backoffice routes ---
