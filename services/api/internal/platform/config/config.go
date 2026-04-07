@@ -16,6 +16,7 @@ type Config struct {
 	Zitadel  ZitadelConfig
 	Stripe   StripeConfig
 	Google   GoogleConfig
+	AI       AIConfig
 }
 
 type StripeConfig struct {
@@ -29,6 +30,12 @@ type GoogleConfig struct {
 	ClientSecret  string
 	RedirectURL   string
 	EncryptionKey string // 64 hex chars for AES-256
+}
+
+type AIConfig struct {
+	AnthropicAPIKey string
+	Model           string
+	MaxTokens       int
 }
 
 type APIConfig struct {
@@ -118,6 +125,11 @@ func Load() (*Config, error) {
 			ClientSecret:  envStr("GOOGLE_CLIENT_SECRET", ""),
 			RedirectURL:   envStr("GOOGLE_REDIRECT_URL", "http://localhost:8081/integrations/google/callback"),
 			EncryptionKey: envStr("GOOGLE_ENCRYPTION_KEY", ""),
+		},
+		AI: AIConfig{
+			AnthropicAPIKey: envStr("ANTHROPIC_API_KEY", ""),
+			Model:           envStr("AI_MODEL", "claude-sonnet-4-20250514"),
+			MaxTokens:       envInt("AI_MAX_TOKENS", 4096),
 		},
 	}, nil
 }

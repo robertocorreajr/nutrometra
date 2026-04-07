@@ -9,6 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	aihandler "nutrometra/api/internal/ai"
+	aiprovider "nutrometra/api/internal/ai/provider"
+	airepo "nutrometra/api/internal/ai/repository"
+	aiuc "nutrometra/api/internal/ai/usecase"
 	"nutrometra/api/internal/backoffice"
 	"nutrometra/api/internal/billing"
 	"nutrometra/api/internal/billing/provider"
@@ -207,6 +211,21 @@ func main() {
 		log.Info("Google Calendar integration initialized")
 	} else {
 		log.Warn("GOOGLE_CLIENT_ID or GOOGLE_ENCRYPTION_KEY not set — Google Calendar disabled")
+	}
+
+	// Phase 5: AI Assistive
+	var aiHandler *aihandler.Handler
+	if cfg.AI.AnthropicAPIKey != "" {
+		claudeProvider := aiprovider.NewClaudeProvider(cfg.AI.AnthropicAPIKey, cfg.AI.Model, cfg.AI.MaxTokens)
+		aiRepo := airepo.New(pool)
+		stubCtxProvider := &aiuc.StubPatientContextProvider{}
+		aiSuggestionSvc := aiuc.NewSuggestionService(aiRepo, claudeProvider, stubCtxProvider, jobQueue)
+		aiHandler = aihandler.NewHandler(aiSuggestionSvc, pool, auditSvc)
+		generateHandler := aiuc.NewGenerateHandler(aiRepo, claudeProvider)
+		jobQueue.RegisterHandler("ai_generate", generateHandler.Handle)
+		log.Info("AI assistive module initialized")
+	} else {
+		log.Warn("ANTHROPIC_API_KEY not set — AI module disabled")
 	}
 
 	// --- Middlewares ---
@@ -437,6 +456,19 @@ func main() {
 					r.With(rbac.RequirePermission("schedule:manage", rbacRepo)).Get("/callback", googleHandler.Callback)
 					r.With(rbac.RequirePermission("schedule:manage", rbacRepo)).Post("/disconnect", googleHandler.Disconnect)
 					r.With(rbac.RequirePermission("schedule:manage", rbacRepo)).Get("/status", googleHandler.Status)
+				})
+			}
+
+			// Phase 5 — AI assistive
+			if aiHandler != nil {
+				r.Route("/ai/suggestions", func(r chi.Router) {
+					r.With(rbac.RequirePermission("ai:suggest", rbacRepo)).Post("/", aiHandler.Create)
+					r.With(rbac.RequirePermission("ai:read", rbacRepo)).Get("/", aiHandler.List)
+					r.Route("/{id}", func(r chi.Router) {
+						r.With(rbac.RequirePermission("ai:read", rbacRepo)).Get("/", aiHandler.GetByID)
+						r.With(rbac.RequirePermission("ai:suggest", rbacRepo)).Post("/accept", aiHandler.Accept)
+						r.With(rbac.RequirePermission("ai:suggest", rbacRepo)).Post("/reject", aiHandler.Reject)
+					})
 				})
 			}
 		})
