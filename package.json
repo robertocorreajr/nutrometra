@@ -1,0 +1,15 @@
+{
+  "name": "nutrometra",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "dev:api": "cd services/api && go run ./cmd/api",
+    "dev:frontend": "turbo dev --filter='./apps/*'"
+  },
+  "devDependencies": {
+    "turbo": "^2"
+  },
+  "packageManager": "pnpm@9.15.4"
+}
