@@ -9,7 +9,9 @@ import (
 	"syscall"
 	"time"
 
+	"nutrometra/api/internal/backoffice"
 	"nutrometra/api/internal/billing"
+	"nutrometra/api/internal/billing/provider"
 	billingrepo "nutrometra/api/internal/billing/repository"
 	billinguc "nutrometra/api/internal/billing/usecase"
 	"nutrometra/api/internal/bioimpedance"
@@ -114,6 +116,14 @@ func main() {
 	docRepo := docrepo.New(pool)
 	exportRepo := exportrepo.New(pool)
 
+	// Phase 4 repositories
+	webhookRepo := billingrepo.NewWebhookRepository(pool)
+	subRepo := billingrepo.NewSubscriptionRepository(pool)
+	invoiceRepo := billingrepo.NewInvoiceRepository(pool)
+	paymentRepo := billingrepo.NewPaymentRepository(pool)
+	overrideRepo := billingrepo.NewOverrideRepository(pool)
+	boRepo := backoffice.NewRepository(pool)
+
 	// --- Services ---
 
 	auditSvc := audit.NewService()
@@ -136,6 +146,19 @@ func main() {
 	docUC := docuc.New(docRepo, pool)
 	exportUC := exportuc.New(exportRepo, pool, entitlementAdapter, pdfGen, bgWorker)
 
+	// Phase 4: Billing provider + usecases
+	var billingProvider provider.BillingProvider
+	if cfg.Stripe.SecretKey != "" {
+		billingProvider = provider.NewStripeProvider(cfg.Stripe.SecretKey, cfg.Stripe.WebhookSecret)
+		log.Info("Stripe billing provider initialized")
+	} else {
+		log.Warn("STRIPE_SECRET_KEY not set — billing provider disabled")
+	}
+
+	webhookProcessor := billinguc.NewWebhookProcessor(pool, webhookRepo, subRepo, invoiceRepo, paymentRepo, auditSvc)
+	subUC := billinguc.NewSubscriptionUsecase(pool, billingProvider, billingRepo, subRepo, auditSvc)
+	overrideUC := billinguc.NewOverrideUsecase(overrideRepo, pool, auditSvc)
+
 	// --- Handlers ---
 
 	tenancyHandler := tenancy.NewHandler(tenancyUC)
@@ -156,11 +179,20 @@ func main() {
 	docHandler := document.NewHandler(docUC, pool, auditSvc)
 	exportHandler := export.NewHandler(exportUC, pool, auditSvc)
 
+	// Phase 4 handlers
+	var webhookHandler *billing.WebhookHandler
+	if billingProvider != nil {
+		webhookHandler = billing.NewWebhookHandler(billingProvider, webhookProcessor)
+	}
+	subHandler := billing.NewSubscriptionHandler(subUC, invoiceRepo, paymentRepo)
+	boHandler := backoffice.NewHandler(boRepo, subUC, overrideUC, invoiceRepo, paymentRepo)
+
 	// --- Middlewares ---
 
 	authMW := identity.AuthMiddleware(validator)
 	resolverMW := identity.UserResolverMiddleware(pool)
 	tenantMW := tenancy.TenantMiddleware(tenancyUC)
+	backofficeMW := backoffice.BackofficeMiddleware(boRepo)
 
 	// --- Router ---
 
@@ -171,6 +203,11 @@ func main() {
 	r.Get("/health", healthChecker.Health)
 	r.Get("/ready", healthChecker.Ready)
 	r.Get("/plans", billingHandler.ListPlans)
+
+	// Stripe webhook — public, validated via HMAC signature
+	if webhookHandler != nil {
+		r.Post("/webhooks/stripe", webhookHandler.HandleStripeWebhook)
+	}
 
 	// Authenticated routes
 	r.Group(func(r chi.Router) {
@@ -191,6 +228,14 @@ func main() {
 			r.Get("/subscription", billingHandler.GetSubscription)
 			r.Post("/subscription/trial", billingHandler.ActivateTrial)
 			r.Get("/entitlements", billingHandler.GetEntitlements)
+
+			// Phase 4 — Subscription self-service
+			r.With(rbac.RequirePermission("subscription:manage", rbacRepo)).Post("/subscription/checkout", subHandler.Checkout)
+			r.With(rbac.RequirePermission("subscription:manage", rbacRepo)).Patch("/subscription/plan", subHandler.ChangePlan)
+			r.With(rbac.RequirePermission("subscription:manage", rbacRepo)).Post("/subscription/cancel", subHandler.CancelSubscription)
+			r.Get("/invoices", subHandler.ListInvoices)
+			r.Get("/invoices/{id}", subHandler.GetInvoice)
+			r.Get("/payments", subHandler.ListPayments)
 
 			// RBAC
 			r.Get("/roles", rbacHandler.ListRoles)
@@ -361,6 +406,37 @@ func main() {
 					r.With(rbac.RequirePermission("clinical:write", rbacRepo)).Put("/", catHandler.Update)
 					r.With(rbac.RequirePermission("clinical:write", rbacRepo)).Delete("/", catHandler.Delete)
 				})
+			})
+		})
+
+		// --- Phase 4: Backoffice routes ---
+		r.Route("/backoffice", func(r chi.Router) {
+			r.Use(backofficeMW)
+
+			// Tenants
+			r.With(backoffice.RequireBackofficePermission("tenants:manage", boRepo)).Get("/tenants", boHandler.ListTenants)
+
+			r.Route("/tenants/{id}", func(r chi.Router) {
+				r.With(backoffice.RequireBackofficePermission("tenants:manage", boRepo)).Get("/", boHandler.GetTenantDetail)
+
+				// Subscription management
+				r.With(backoffice.RequireBackofficePermission("billing:manage", boRepo)).Get("/subscription", boHandler.GetSubscription)
+				r.With(backoffice.RequireBackofficePermission("billing:manage", boRepo)).Patch("/subscription/plan", boHandler.ChangePlan)
+				r.With(backoffice.RequireBackofficePermission("billing:manage", boRepo)).Post("/subscription/cancel", boHandler.CancelSubscription)
+				r.With(backoffice.RequireBackofficePermission("billing:manage", boRepo)).Post("/subscription/reactivate", boHandler.ReactivateSubscription)
+
+				// Invoices & payments
+				r.With(backoffice.RequireBackofficePermission("billing:manage", boRepo)).Get("/invoices", boHandler.ListInvoices)
+				r.With(backoffice.RequireBackofficePermission("billing:manage", boRepo)).Get("/payments", boHandler.ListPayments)
+
+				// Overrides
+				r.With(backoffice.RequireBackofficePermission("overrides:manage", boRepo)).Get("/overrides", boHandler.ListOverrides)
+				r.With(backoffice.RequireBackofficePermission("overrides:manage", boRepo)).Post("/overrides", boHandler.CreateOverride)
+				r.With(backoffice.RequireBackofficePermission("overrides:manage", boRepo)).Put("/overrides/{feature_key}", boHandler.UpdateOverride)
+				r.With(backoffice.RequireBackofficePermission("overrides:manage", boRepo)).Delete("/overrides/{feature_key}", boHandler.DeleteOverride)
+
+				// Audit trail
+				r.With(backoffice.RequireBackofficePermission("support:manage", boRepo)).Get("/audit", boHandler.ListAuditLogs)
 			})
 		})
 	})

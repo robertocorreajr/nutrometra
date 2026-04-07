@@ -7,13 +7,15 @@ import (
 )
 
 type Plan struct {
-	ID           uuid.UUID
-	Code         string
-	Name         string
-	Active       bool
-	BillingCycle string
-	Currency     string
-	PriceCents   int64
+	ID                uuid.UUID
+	Code              string
+	Name              string
+	Active            bool
+	BillingCycle      string
+	Currency          string
+	PriceCents        int64
+	ProviderPriceID   *string
+	ProviderProductID *string
 }
 
 type PlanFeature struct {
@@ -37,14 +39,18 @@ const (
 )
 
 type Subscription struct {
-	ID          uuid.UUID
-	TenantID    uuid.UUID
-	PlanID      uuid.UUID
-	Status      SubscriptionStatus
-	StartedAt   time.Time
-	TrialEndsAt *time.Time
-	RenewsAt    *time.Time
-	CanceledAt  *time.Time
+	ID                     uuid.UUID
+	TenantID               uuid.UUID
+	PlanID                 uuid.UUID
+	Status                 SubscriptionStatus
+	StartedAt              time.Time
+	TrialEndsAt            *time.Time
+	RenewsAt               *time.Time
+	CanceledAt             *time.Time
+	ProviderCustomerID     *string
+	ProviderSubscriptionID *string
+	PreviousPlanID         *uuid.UUID
+	PlanChangedAt          *time.Time
 }
 
 func (s Subscription) IsActive() bool {
@@ -52,12 +58,15 @@ func (s Subscription) IsActive() bool {
 }
 
 type FeatureOverride struct {
-	TenantID   uuid.UUID
-	FeatureKey string
-	Enabled    *bool
-	LimitValue *int64
-	StartsAt   *time.Time
-	EndsAt     *time.Time
+	ID              uuid.UUID
+	TenantID        uuid.UUID
+	FeatureKey      string
+	Enabled         *bool
+	LimitValue      *int64
+	StartsAt        *time.Time
+	EndsAt          *time.Time
+	Reason          string
+	CreatedByUserID *uuid.UUID
 }
 
 // Entitlement is the result of resolving a feature for a tenant.

@@ -10,8 +10,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// Executor is satisfied by *pgxpool.Pool and pgx.Tx, allowing repo methods
+// to participate in an existing transaction.
+type Executor interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
 
 type Repository struct {
 	pool *pgxpool.Pool
@@ -23,7 +31,8 @@ func New(pool *pgxpool.Pool) *Repository {
 
 func (r *Repository) ListActivePlans(ctx context.Context) ([]domain.Plan, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, code, name, active, billing_cycle, currency, price_cents
+		`SELECT id, code, name, active, billing_cycle, currency, price_cents,
+		        provider_price_id, provider_product_id
 		 FROM subscription_plans WHERE active = TRUE ORDER BY price_cents`,
 	)
 	if err != nil {
@@ -34,7 +43,8 @@ func (r *Repository) ListActivePlans(ctx context.Context) ([]domain.Plan, error)
 	var plans []domain.Plan
 	for rows.Next() {
 		var p domain.Plan
-		if err := rows.Scan(&p.ID, &p.Code, &p.Name, &p.Active, &p.BillingCycle, &p.Currency, &p.PriceCents); err != nil {
+		if err := rows.Scan(&p.ID, &p.Code, &p.Name, &p.Active, &p.BillingCycle, &p.Currency, &p.PriceCents,
+			&p.ProviderPriceID, &p.ProviderProductID); err != nil {
 			return nil, fmt.Errorf("billing: scan_plan: %w", err)
 		}
 		plans = append(plans, p)
@@ -48,13 +58,15 @@ func (r *Repository) ListActivePlans(ctx context.Context) ([]domain.Plan, error)
 func (r *Repository) GetActiveSubscription(ctx context.Context, tenantID uuid.UUID) (*domain.Subscription, error) {
 	var s domain.Subscription
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, tenant_id, plan_id, status, started_at, trial_ends_at, renews_at, canceled_at
+		`SELECT id, tenant_id, plan_id, status, started_at, trial_ends_at, renews_at, canceled_at,
+		        provider_customer_id, provider_subscription_id, previous_plan_id, plan_changed_at
 		 FROM tenant_subscriptions
 		 WHERE tenant_id = $1 AND status IN ('active','trialing')
 		   AND (status != 'trialing' OR trial_ends_at IS NULL OR trial_ends_at > NOW())
 		 ORDER BY started_at DESC LIMIT 1`,
 		tenantID,
-	).Scan(&s.ID, &s.TenantID, &s.PlanID, &s.Status, &s.StartedAt, &s.TrialEndsAt, &s.RenewsAt, &s.CanceledAt)
+	).Scan(&s.ID, &s.TenantID, &s.PlanID, &s.Status, &s.StartedAt, &s.TrialEndsAt, &s.RenewsAt, &s.CanceledAt,
+		&s.ProviderCustomerID, &s.ProviderSubscriptionID, &s.PreviousPlanID, &s.PlanChangedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil // no active subscription
