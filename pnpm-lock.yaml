@@ -36,9 +36,24 @@ importers:
 
   apps/web-patient:
     dependencies:
+      '@nutrometra/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@nutrometra/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@nutrometra/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@tanstack/react-query':
+        specifier: ^5
+        version: 5.96.2(react@18.3.1)
       next:
         specifier: 14.2.5
         version: 14.2.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      next-auth:
+        specifier: ^4
+        version: 4.24.13(next@14.2.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18
         version: 18.3.1
@@ -52,6 +67,15 @@ importers:
       '@types/react':
         specifier: ^18
         version: 18.3.28
+      autoprefixer:
+        specifier: ^10
+        version: 10.4.27(postcss@8.5.9)
+      postcss:
+        specifier: ^8
+        version: 8.5.9
+      tailwindcss:
+        specifier: ^3.4
+        version: 3.4.19
       typescript:
         specifier: ^5
         version: 5.9.3
