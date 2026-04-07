@@ -9,6 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	aihandler "nutrometra/api/internal/ai"
+	aiprovider "nutrometra/api/internal/ai/provider"
+	airepo "nutrometra/api/internal/ai/repository"
+	aiuc "nutrometra/api/internal/ai/usecase"
 	"nutrometra/api/internal/backoffice"
 	"nutrometra/api/internal/billing"
 	"nutrometra/api/internal/billing/provider"
@@ -34,15 +38,18 @@ import (
 	exportuc "nutrometra/api/internal/export/usecase"
 	"nutrometra/api/internal/identity"
 	identityoidc "nutrometra/api/internal/identity/oidc"
+	googleint "nutrometra/api/internal/integrations/google"
 	"nutrometra/api/internal/patient"
 	patrepo "nutrometra/api/internal/patient/repository"
 	patuc "nutrometra/api/internal/patient/usecase"
 	"nutrometra/api/internal/platform/audit"
+	"nutrometra/api/internal/platform/cache"
 	"nutrometra/api/internal/platform/config"
 	"nutrometra/api/internal/platform/db"
 	"nutrometra/api/internal/platform/logger"
 	"nutrometra/api/internal/platform/observability"
 	"nutrometra/api/internal/platform/pdfgen"
+	"nutrometra/api/internal/platform/queue"
 	apiredis "nutrometra/api/internal/platform/redis"
 	"nutrometra/api/internal/platform/server"
 	"nutrometra/api/internal/platform/worker"
@@ -91,6 +98,12 @@ func main() {
 	defer redisClient.Close()
 	log.Info("redis connected")
 
+	// --- Cache ---
+	redisCache := cache.NewRedisCache(redisClient)
+
+	// --- Persistent Job Queue ---
+	jobQueue := queue.NewPostgresQueue(pool)
+
 	// --- OIDC Validator ---
 
 	validator := identityoidc.NewValidator(cfg.Zitadel.Issuer, cfg.Zitadel.ClientID)
@@ -129,6 +142,7 @@ func main() {
 	auditSvc := audit.NewService()
 	tenancyUC := tenancyuc.NewTenantUsecase(tenancyRepo)
 	entitlementSvc := billinguc.NewEntitlementService(billingRepo)
+	cachedEntitlementSvc := billinguc.NewCachedEntitlementService(entitlementSvc, redisCache)
 	entitlementAdapter := billinguc.NewEntitlementAdapter(entitlementSvc)
 
 	// Phase 2 usecases
@@ -163,7 +177,7 @@ func main() {
 
 	tenancyHandler := tenancy.NewHandler(tenancyUC)
 	rbacHandler := rbac.NewHandler(rbacRepo, pool, auditSvc)
-	billingHandler := billing.NewHandler(billingRepo, entitlementSvc, pool, auditSvc)
+	billingHandler := billing.NewHandler(billingRepo, entitlementSvc, cachedEntitlementSvc, pool, auditSvc)
 	healthChecker := observability.NewHealthChecker(pool, redisClient, cfg.Zitadel.Issuer)
 
 	// Phase 2 handlers
@@ -186,6 +200,33 @@ func main() {
 	}
 	subHandler := billing.NewSubscriptionHandler(subUC, invoiceRepo, paymentRepo)
 	boHandler := backoffice.NewHandler(boRepo, subUC, overrideUC, invoiceRepo, paymentRepo)
+
+	// Phase 5: Google Calendar integration
+	var googleHandler *googleint.Handler
+	if cfg.Google.ClientID != "" && cfg.Google.EncryptionKey != "" {
+		googleCalProvider := googleint.NewGoogleCalendarProvider()
+		googleRepo := googleint.NewRepository(pool, cfg.Google.EncryptionKey)
+		googleHandler = googleint.NewHandler(pool, googleRepo, googleCalProvider, auditSvc, cfg.Google, jobQueue)
+		jobQueue.RegisterHandler("calendar_sync", googleint.NewSyncHandler(googleRepo, googleCalProvider, cfg.Google.EncryptionKey))
+		log.Info("Google Calendar integration initialized")
+	} else {
+		log.Warn("GOOGLE_CLIENT_ID or GOOGLE_ENCRYPTION_KEY not set — Google Calendar disabled")
+	}
+
+	// Phase 5: AI Assistive
+	var aiHandler *aihandler.Handler
+	if cfg.AI.AnthropicAPIKey != "" {
+		claudeProvider := aiprovider.NewClaudeProvider(cfg.AI.AnthropicAPIKey, cfg.AI.Model, cfg.AI.MaxTokens)
+		aiRepo := airepo.New(pool)
+		stubCtxProvider := &aiuc.StubPatientContextProvider{}
+		aiSuggestionSvc := aiuc.NewSuggestionService(aiRepo, claudeProvider, stubCtxProvider, jobQueue)
+		aiHandler = aihandler.NewHandler(aiSuggestionSvc, pool, auditSvc)
+		generateHandler := aiuc.NewGenerateHandler(aiRepo, claudeProvider)
+		jobQueue.RegisterHandler("ai_generate", generateHandler.Handle)
+		log.Info("AI assistive module initialized")
+	} else {
+		log.Warn("ANTHROPIC_API_KEY not set — AI module disabled")
+	}
 
 	// --- Middlewares ---
 
@@ -407,6 +448,29 @@ func main() {
 					r.With(rbac.RequirePermission("clinical:write", rbacRepo)).Delete("/", catHandler.Delete)
 				})
 			})
+
+			// Phase 5 — Google Calendar integration
+			if googleHandler != nil {
+				r.Route("/integrations/google", func(r chi.Router) {
+					r.With(rbac.RequirePermission("schedule:manage", rbacRepo)).Get("/authorize", googleHandler.Authorize)
+					r.With(rbac.RequirePermission("schedule:manage", rbacRepo)).Get("/callback", googleHandler.Callback)
+					r.With(rbac.RequirePermission("schedule:manage", rbacRepo)).Post("/disconnect", googleHandler.Disconnect)
+					r.With(rbac.RequirePermission("schedule:manage", rbacRepo)).Get("/status", googleHandler.Status)
+				})
+			}
+
+			// Phase 5 — AI assistive
+			if aiHandler != nil {
+				r.Route("/ai/suggestions", func(r chi.Router) {
+					r.With(rbac.RequirePermission("ai:suggest", rbacRepo)).Post("/", aiHandler.Create)
+					r.With(rbac.RequirePermission("ai:read", rbacRepo)).Get("/", aiHandler.List)
+					r.Route("/{id}", func(r chi.Router) {
+						r.With(rbac.RequirePermission("ai:read", rbacRepo)).Get("/", aiHandler.GetByID)
+						r.With(rbac.RequirePermission("ai:suggest", rbacRepo)).Post("/accept", aiHandler.Accept)
+						r.With(rbac.RequirePermission("ai:suggest", rbacRepo)).Post("/reject", aiHandler.Reject)
+					})
+				})
+			}
 		})
 
 		// --- Phase 4: Backoffice routes ---
@@ -443,6 +507,7 @@ func main() {
 
 	// --- Start worker & server ---
 
+	jobQueue.Start(ctx)
 	bgWorker.Start(ctx)
 
 	quit := make(chan os.Signal, 1)
@@ -458,6 +523,7 @@ func main() {
 
 	<-quit
 	log.Info("shutting down...")
+	jobQueue.Stop()
 	bgWorker.Stop()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
