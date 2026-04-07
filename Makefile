@@ -1,16 +1,25 @@
-.PHONY: dev test migrate-up migrate-down lint build setup
+.PHONY: dev dev-detached dev-down migrate-up migrate-down test test-integration lint build setup setup-zitadel
+
+COMPOSE = docker compose --env-file .env -f infra/docker-compose.yml
 
 dev:
-	docker compose -f infra/docker-compose.yml up --build
+	$(COMPOSE) up --build
+
+dev-detached:
+	$(COMPOSE) up --build -d
 
 dev-down:
-	docker compose -f infra/docker-compose.yml down
+	$(COMPOSE) down
 
 migrate-up:
-	cd services/api && go run -tags migrate ./cmd/migrate up
+	docker exec -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=nutrometra \
+		-e POSTGRES_USER=nutrometra -e POSTGRES_PASSWORD=nutrometra_dev -e POSTGRES_SSLMODE=disable \
+		infra-api-1 go run ./cmd/migrate up
 
 migrate-down:
-	cd services/api && go run -tags migrate ./cmd/migrate down 1
+	docker exec -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=nutrometra \
+		-e POSTGRES_USER=nutrometra -e POSTGRES_PASSWORD=nutrometra_dev -e POSTGRES_SSLMODE=disable \
+		infra-api-1 go run ./cmd/migrate down 1
 
 test:
 	cd services/api && go test ./... -v -count=1
@@ -24,7 +33,22 @@ lint:
 build:
 	cd services/api && go build -o ./bin/api ./cmd/api
 
-setup: dev
-	@echo "Aguardando Zitadel ficar saudável..."
-	@until curl -sf http://localhost:8080/debug/healthz > /dev/null; do sleep 2; done
-	@echo "Zitadel pronto. Acesse http://localhost:8080 para configurar o OIDC client."
+# Full first-time setup: start stack, wait for health, run migrations, create OIDC app
+setup:
+	@echo "Starting stack..."
+	$(COMPOSE) up --build -d
+	@echo "Waiting for all services to be healthy..."
+	@until $(COMPOSE) ps --format '{{.Health}}' | grep -v healthy | grep -c . | grep -q '^0$$'; do sleep 5; done 2>/dev/null || sleep 30
+	@echo "Running migrations..."
+	$(MAKE) migrate-up
+	@echo "Setting up Zitadel OIDC..."
+	$(MAKE) setup-zitadel
+	@echo ""
+	@echo "=== Setup complete ==="
+	@echo "API:     http://localhost:8081"
+	@echo "Zitadel: http://zitadel:8080 (add '127.0.0.1 zitadel' to /etc/hosts)"
+	@echo "Health:  curl http://localhost:8081/health"
+
+setup-zitadel:
+	@./infra/scripts/setup-zitadel.sh
+	@$(COMPOSE) up -d api --force-recreate

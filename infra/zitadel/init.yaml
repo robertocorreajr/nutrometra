@@ -1,6 +1,8 @@
 # DEV CREDENTIALS ONLY — never use in production
 # Admin login: admin@nutrometra.local / Admin1234!
 FirstInstance:
+  InstanceName: Nutrometra
+  DefaultLanguage: pt
   Org:
     Name: Nutrometra
     Human:
@@ -12,3 +14,14 @@ FirstInstance:
         Verified: true
       Password: Admin1234!
       PasswordChangeRequired: false
+    Machine:
+      Machine:
+        Username: setup-sa
+        Name: Setup Service Account
+      MachineKey:
+        Type: 1
+        ExpirationDate: "2030-01-01T00:00:00Z"
+      Pat:
+        ExpirationDate: "2030-01-01T00:00:00Z"
+  PatPath: /machinekey/zitadel-admin-sa.pat
+  MachineKeyPath: /machinekey/zitadel-admin-sa.json
