@@ -5,16 +5,25 @@
   "scripts": {
     "dev": "next dev -p 3002",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
+    "@nutrometra/api-client": "workspace:*",
+    "@nutrometra/auth": "workspace:*",
+    "@nutrometra/ui": "workspace:*",
     "next": "14.2.5",
+    "next-auth": "^4",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "@tanstack/react-query": "^5"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
+    "autoprefixer": "^10",
+    "postcss": "^8",
+    "tailwindcss": "^3.4",
     "typescript": "^5"
   }
 }
