@@ -31,6 +31,8 @@ Desktop.ini
 # Binaries
 bin/
 dist/
+services/api/api
+services/api/migrate
 *.exe
 *.exe~
 *.dll
