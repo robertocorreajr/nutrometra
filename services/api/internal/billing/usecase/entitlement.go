@@ -3,18 +3,26 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"nutrometra/api/internal/billing/domain"
-	"nutrometra/api/internal/billing/repository"
 
 	"github.com/google/uuid"
 )
 
-type EntitlementService struct {
-	repo *repository.Repository
+// BillingRepository defines the data access needed by the entitlement service.
+type BillingRepository interface {
+	GetActiveSubscription(ctx context.Context, tenantID uuid.UUID) (*domain.Subscription, error)
+	GetPlanFeature(ctx context.Context, planID uuid.UUID, featureKey string) (*domain.PlanFeature, error)
+	GetAllPlanFeatures(ctx context.Context, planID uuid.UUID) ([]domain.PlanFeature, error)
+	GetActiveOverride(ctx context.Context, tenantID uuid.UUID, featureKey string, now time.Time) (*domain.FeatureOverride, error)
 }
 
-func NewEntitlementService(repo *repository.Repository) *EntitlementService {
+type EntitlementService struct {
+	repo BillingRepository
+}
+
+func NewEntitlementService(repo BillingRepository) *EntitlementService {
 	return &EntitlementService{repo: repo}
 }
 
@@ -34,7 +42,8 @@ func (s *EntitlementService) CheckEntitlement(ctx context.Context, tenantID uuid
 		}, nil
 	}
 
-	override, err := s.repo.GetActiveOverride(ctx, tenantID, featureKey)
+	now := time.Now().UTC()
+	override, err := s.repo.GetActiveOverride(ctx, tenantID, featureKey, now)
 	if err != nil {
 		return nil, fmt.Errorf("entitlement: get_override: %w", err)
 	}
@@ -45,6 +54,30 @@ func (s *EntitlementService) CheckEntitlement(ctx context.Context, tenantID uuid
 	}
 
 	return ResolveEntitlement(featureKey, planFeature, override), nil
+}
+
+// GetAllEntitlements returns the full entitlement map for a tenant.
+func (s *EntitlementService) GetAllEntitlements(ctx context.Context, tenantID uuid.UUID) (map[string]*domain.Entitlement, error) {
+	sub, err := s.repo.GetActiveSubscription(ctx, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("entitlement: get_subscription: %w", err)
+	}
+	if sub == nil {
+		return map[string]*domain.Entitlement{}, nil
+	}
+
+	features, err := s.repo.GetAllPlanFeatures(ctx, sub.PlanID)
+	if err != nil {
+		return nil, fmt.Errorf("entitlement: get_all_features: %w", err)
+	}
+
+	now := time.Now().UTC()
+	result := make(map[string]*domain.Entitlement, len(features))
+	for _, pf := range features {
+		override, _ := s.repo.GetActiveOverride(ctx, tenantID, pf.FeatureKey, now)
+		result[pf.FeatureKey] = ResolveEntitlement(pf.FeatureKey, &pf, override)
+	}
+	return result, nil
 }
 
 // ResolveEntitlement applies the precedence logic. Exported for unit testing.

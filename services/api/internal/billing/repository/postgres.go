@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -50,11 +51,12 @@ func (r *Repository) GetActiveSubscription(ctx context.Context, tenantID uuid.UU
 		`SELECT id, tenant_id, plan_id, status, started_at, trial_ends_at, renews_at, canceled_at
 		 FROM tenant_subscriptions
 		 WHERE tenant_id = $1 AND status IN ('active','trialing')
+		   AND (status != 'trialing' OR trial_ends_at IS NULL OR trial_ends_at > NOW())
 		 ORDER BY started_at DESC LIMIT 1`,
 		tenantID,
 	).Scan(&s.ID, &s.TenantID, &s.PlanID, &s.Status, &s.StartedAt, &s.TrialEndsAt, &s.RenewsAt, &s.CanceledAt)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil // no active subscription
 		}
 		return nil, fmt.Errorf("billing: get_subscription: %w", err)
@@ -70,7 +72,7 @@ func (r *Repository) GetPlanFeature(ctx context.Context, planID uuid.UUID, featu
 		planID, featureKey,
 	).Scan(&f.ID, &f.PlanID, &f.FeatureKey, &f.Enabled, &f.LimitValue, &f.TrialEnabled, &f.TrialDays)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("billing: get_plan_feature: %w", err)
@@ -103,9 +105,8 @@ func (r *Repository) GetAllPlanFeatures(ctx context.Context, planID uuid.UUID) (
 	return features, nil
 }
 
-func (r *Repository) GetActiveOverride(ctx context.Context, tenantID uuid.UUID, featureKey string) (*domain.FeatureOverride, error) {
+func (r *Repository) GetActiveOverride(ctx context.Context, tenantID uuid.UUID, featureKey string, now time.Time) (*domain.FeatureOverride, error) {
 	var o domain.FeatureOverride
-	now := time.Now().UTC()
 	err := r.pool.QueryRow(ctx,
 		`SELECT tenant_id, feature_key, enabled, limit_value, starts_at, ends_at
 		 FROM tenant_feature_overrides
@@ -115,7 +116,7 @@ func (r *Repository) GetActiveOverride(ctx context.Context, tenantID uuid.UUID, 
 		tenantID, featureKey, now,
 	).Scan(&o.TenantID, &o.FeatureKey, &o.Enabled, &o.LimitValue, &o.StartsAt, &o.EndsAt)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("billing: get_override: %w", err)
