@@ -37,6 +37,8 @@ services:
     volumes:
       - ./zitadel/config.yaml:/config.yaml:ro
       - ./zitadel/init.yaml:/init.yaml:ro
+      - zitadel_machinekey:/machinekey
+    user: "0" # DEV ONLY: root needed to write PAT to /machinekey volume
     ports:
       - "8080:8080"
     depends_on:
@@ -61,7 +63,7 @@ services:
       POSTGRES_PASSWORD: nutrometra_dev
       REDIS_ADDR: redis:6379
       ZITADEL_ISSUER: http://zitadel:8080
-      ZITADEL_DOMAIN: localhost
+      ZITADEL_DOMAIN: zitadel
       ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID:-placeholder}
       API_PORT: 8081
       API_ENV: development
@@ -81,3 +83,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  zitadel_machinekey:

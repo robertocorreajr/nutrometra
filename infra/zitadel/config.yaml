@@ -4,7 +4,7 @@ Log:
     Format: text
 
 Port: 8080
-ExternalDomain: localhost
+ExternalDomain: zitadel
 ExternalPort: 8080
 ExternalSecure: false
 
