@@ -11,6 +11,9 @@ ExternalSecure: false
 TLS:
   Enabled: false
 
+# Passwords are injected via environment variables in docker-compose.yml:
+#   ZITADEL_DATABASE_POSTGRES_USER_PASSWORD
+#   ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD
 Database:
   Postgres:
     Host: postgres
@@ -22,12 +25,10 @@ Database:
     MaxConnIdleTime: 5m
     User:
       Username: postgres
-      Password: postgres
       SSL:
         Mode: disable
     Admin:
       Username: postgres
-      Password: postgres
       SSL:
         Mode: disable
 

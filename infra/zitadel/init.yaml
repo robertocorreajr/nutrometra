@@ -1,5 +1,5 @@
-# DEV CREDENTIALS ONLY — never use in production
-# Admin login: admin@nutrometra.local / Admin1234!
+# Admin password is injected via environment variable in docker-compose.yml:
+#   ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD
 FirstInstance:
   InstanceName: Nutrometra
   DefaultLanguage: pt
@@ -12,7 +12,6 @@ FirstInstance:
       Email:
         Address: admin@nutrometra.local
         Verified: true
-      Password: Admin1234!
       PasswordChangeRequired: false
     Machine:
       Machine:
