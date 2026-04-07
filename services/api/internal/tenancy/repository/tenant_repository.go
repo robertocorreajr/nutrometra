@@ -11,8 +11,6 @@ import (
 	"nutrometra/api/internal/tenancy/domain"
 )
 
-var ErrNotFound = errors.New("tenant not found")
-
 // TenantRepository defines read operations for tenants.
 type TenantRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Tenant, error)
@@ -28,7 +26,9 @@ func NewPostgresRepository(pool *pgxpool.Pool) TenantRepository {
 	return &postgresRepository{pool: pool}
 }
 
-const selectColumns = `id, name, slug, plan_id, status, trial_ends_at, created_at, updated_at`
+const queryGetByID = `SELECT id, name, slug, plan_id, status, trial_ends_at, created_at, updated_at FROM tenants WHERE id = $1`
+
+const queryGetBySlug = `SELECT id, name, slug, plan_id, status, trial_ends_at, created_at, updated_at FROM tenants WHERE slug = $1`
 
 func scanTenant(row pgx.Row) (*domain.Tenant, error) {
 	var t domain.Tenant
@@ -44,7 +44,7 @@ func scanTenant(row pgx.Row) (*domain.Tenant, error) {
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
+			return nil, domain.ErrTenantNotFound
 		}
 		return nil, err
 	}
@@ -52,17 +52,11 @@ func scanTenant(row pgx.Row) (*domain.Tenant, error) {
 }
 
 func (r *postgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Tenant, error) {
-	row := r.pool.QueryRow(ctx,
-		`SELECT `+selectColumns+` FROM tenants WHERE id = $1`,
-		id,
-	)
+	row := r.pool.QueryRow(ctx, queryGetByID, id)
 	return scanTenant(row)
 }
 
 func (r *postgresRepository) GetBySlug(ctx context.Context, slug string) (*domain.Tenant, error) {
-	row := r.pool.QueryRow(ctx,
-		`SELECT `+selectColumns+` FROM tenants WHERE slug = $1`,
-		slug,
-	)
+	row := r.pool.QueryRow(ctx, queryGetBySlug, slug)
 	return scanTenant(row)
 }

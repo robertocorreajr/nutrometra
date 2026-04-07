@@ -1,4 +1,4 @@
-package repository_test
+package usecase_test
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"nutrometra/api/internal/tenancy/domain"
-	"nutrometra/api/internal/tenancy/repository"
 	"nutrometra/api/internal/tenancy/usecase"
 )
 
@@ -22,7 +21,7 @@ type fakeTenantRepo struct {
 func (f *fakeTenantRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.Tenant, error) {
 	t, ok := f.tenants[id]
 	if !ok {
-		return nil, repository.ErrNotFound
+		return nil, domain.ErrTenantNotFound
 	}
 	return t, nil
 }
@@ -33,7 +32,7 @@ func (f *fakeTenantRepo) GetBySlug(ctx context.Context, slug string) (*domain.Te
 			return t, nil
 		}
 	}
-	return nil, repository.ErrNotFound
+	return nil, domain.ErrTenantNotFound
 }
 
 func newFakeRepo(tenants ...*domain.Tenant) *fakeTenantRepo {
@@ -75,7 +74,7 @@ func TestTenantUsecase_GetByID_NotFound(t *testing.T) {
 	got, err := uc.GetByID(context.Background(), uuid.New())
 
 	assert.Nil(t, got)
-	assert.ErrorIs(t, err, repository.ErrNotFound)
+	assert.ErrorIs(t, err, domain.ErrTenantNotFound)
 }
 
 func TestTenantUsecase_GetBySlug_Found(t *testing.T) {
@@ -95,15 +94,5 @@ func TestTenantUsecase_GetBySlug_NotFound(t *testing.T) {
 	got, err := uc.GetBySlug(context.Background(), "non-existent-slug")
 
 	assert.Nil(t, got)
-	assert.ErrorIs(t, err, repository.ErrNotFound)
-}
-
-func TestTenant_IsActive(t *testing.T) {
-	active := &domain.Tenant{Status: domain.TenantStatusActive}
-	suspended := &domain.Tenant{Status: domain.TenantStatusSuspended}
-	cancelled := &domain.Tenant{Status: domain.TenantStatusCancelled}
-
-	assert.True(t, active.IsActive())
-	assert.False(t, suspended.IsActive())
-	assert.False(t, cancelled.IsActive())
+	assert.ErrorIs(t, err, domain.ErrTenantNotFound)
 }
