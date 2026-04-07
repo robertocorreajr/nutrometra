@@ -45,6 +45,13 @@ func (s *stubTenantRepo) IsMember(ctx context.Context, tenantID, userID uuid.UUI
 	return s.members[tenantID.String()+":"+userID.String()], nil
 }
 
+func emptyUsecase() usecase.TenantUsecase {
+	return usecase.NewTenantUsecase(&stubTenantRepo{
+		tenants: make(map[uuid.UUID]*domain.Tenant),
+		members: make(map[string]bool),
+	})
+}
+
 func activeTenant() *domain.Tenant {
 	return &domain.Tenant{
 		ID:          uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
@@ -60,8 +67,14 @@ func activeTenant() *domain.Tenant {
 	}
 }
 
+func TestTenantMiddleware_NilUsecase_Panics(t *testing.T) {
+	assert.Panics(t, func() {
+		tenancy.TenantMiddleware(nil)
+	})
+}
+
 func TestTenantMiddleware_MissingHeader(t *testing.T) {
-	mw := tenancy.TenantMiddleware(nil)
+	mw := tenancy.TenantMiddleware(emptyUsecase())
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -77,7 +90,7 @@ func TestTenantMiddleware_MissingHeader(t *testing.T) {
 }
 
 func TestTenantMiddleware_InvalidUUID(t *testing.T) {
-	mw := tenancy.TenantMiddleware(nil)
+	mw := tenancy.TenantMiddleware(emptyUsecase())
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -93,25 +106,21 @@ func TestTenantMiddleware_InvalidUUID(t *testing.T) {
 	assert.Equal(t, "invalid_tenant_id", body["code"])
 }
 
-func TestTenantMiddleware_ValidUUID_NilUsecase_SetsTenantContext(t *testing.T) {
-	// uc=nil skips DB checks, only validates header
-	mw := tenancy.TenantMiddleware(nil)
-	tenantID := uuid.New()
-	var capturedTenantID uuid.UUID
+func TestTenantMiddleware_ValidUUID_NotInDB(t *testing.T) {
+	mw := tenancy.TenantMiddleware(emptyUsecase())
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id, ok := identitydomain.TenantIDFromContext(r.Context())
-		assert.True(t, ok)
-		capturedTenantID = id
 		w.WriteHeader(http.StatusOK)
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("X-Tenant-ID", tenantID.String())
+	req.Header.Set("X-Tenant-ID", uuid.New().String())
 	rr := httptest.NewRecorder()
 	mw(next).ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Equal(t, tenantID, capturedTenantID)
+	assert.Equal(t, http.StatusForbidden, rr.Code)
+	var body map[string]string
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
+	assert.Equal(t, "tenant_not_found", body["code"])
 }
 
 func TestTenantMiddleware_TenantNotFound(t *testing.T) {
@@ -149,6 +158,33 @@ func TestTenantMiddleware_TenantSuspended(t *testing.T) {
 	mw(next).ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusForbidden, rr.Code)
+	var body map[string]string
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
+	assert.Equal(t, "tenant_suspended", body["code"])
+}
+
+func TestTenantMiddleware_TenantCancelled(t *testing.T) {
+	tenant := activeTenant()
+	tenant.Status = domain.TenantStatusCancelled
+	repo := &stubTenantRepo{
+		tenants: map[uuid.UUID]*domain.Tenant{tenant.ID: tenant},
+		members: make(map[string]bool),
+	}
+	uc := usecase.NewTenantUsecase(repo)
+	mw := tenancy.TenantMiddleware(uc)
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Tenant-ID", tenant.ID.String())
+	rr := httptest.NewRecorder()
+	mw(next).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
+	var body map[string]string
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
+	assert.Equal(t, "tenant_not_active", body["code"])
 }
 
 func TestTenantMiddleware_ActiveTenant_NoUser_OK(t *testing.T) {

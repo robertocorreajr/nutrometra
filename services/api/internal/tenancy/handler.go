@@ -8,9 +8,6 @@ import (
 	"nutrometra/api/internal/platform/server"
 	"nutrometra/api/internal/tenancy/domain"
 	"nutrometra/api/internal/tenancy/usecase"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 // Handler exposes HTTP endpoints for tenant operations.
@@ -63,51 +60,6 @@ func (h *Handler) GetCurrent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tenant, err := h.uc.GetByID(r.Context(), tenantID)
-	if err != nil {
-		if errors.Is(err, domain.ErrTenantNotFound) {
-			server.RenderError(w, r, http.StatusNotFound, "tenant_not_found", "Tenant not found")
-			return
-		}
-		server.RenderError(w, r, http.StatusInternalServerError, "internal_error", "Failed to fetch tenant")
-		return
-	}
-
-	server.RenderJSON(w, http.StatusOK, toTenantResponse(tenant))
-}
-
-// GetByID returns a tenant by its UUID path parameter.
-// GET /tenants/{id}
-func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		server.RenderError(w, r, http.StatusBadRequest, "invalid_id", "Invalid tenant ID")
-		return
-	}
-
-	tenant, err := h.uc.GetByID(r.Context(), id)
-	if err != nil {
-		if errors.Is(err, domain.ErrTenantNotFound) {
-			server.RenderError(w, r, http.StatusNotFound, "tenant_not_found", "Tenant not found")
-			return
-		}
-		server.RenderError(w, r, http.StatusInternalServerError, "internal_error", "Failed to fetch tenant")
-		return
-	}
-
-	server.RenderJSON(w, http.StatusOK, toTenantResponse(tenant))
-}
-
-// GetBySlug returns a tenant by its slug path parameter.
-// GET /tenants/by-slug/{slug}
-func (h *Handler) GetBySlug(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "slug")
-	if slug == "" {
-		server.RenderError(w, r, http.StatusBadRequest, "missing_slug", "Slug is required")
-		return
-	}
-
-	tenant, err := h.uc.GetBySlug(r.Context(), slug)
 	if err != nil {
 		if errors.Is(err, domain.ErrTenantNotFound) {
 			server.RenderError(w, r, http.StatusNotFound, "tenant_not_found", "Tenant not found")

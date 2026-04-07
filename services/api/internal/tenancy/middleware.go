@@ -15,12 +15,16 @@ import (
 // TenantMiddleware resolves and validates the tenant from the X-Tenant-ID header.
 // Guarantees:
 //  1. Header present and valid UUID.
-//  2. Tenant exists in DB (when uc is non-nil).
-//  3. Tenant is active.
+//  2. Tenant exists in DB.
+//  3. Tenant is active (not suspended or cancelled).
 //  4. Authenticated user is an active member of the tenant (when user in context).
 //
-// Pass uc=nil for unit tests that only need header validation.
+// Panics if uc is nil — fail fast at wiring time, not at request time.
 func TenantMiddleware(uc usecase.TenantUsecase) func(http.Handler) http.Handler {
+	if uc == nil {
+		panic("TenantMiddleware requires a non-nil TenantUsecase")
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tenantIDStr := r.Header.Get("X-Tenant-ID")
@@ -35,33 +39,35 @@ func TenantMiddleware(uc usecase.TenantUsecase) func(http.Handler) http.Handler 
 				return
 			}
 
-			if uc != nil {
-				tenant, err := uc.GetByID(r.Context(), tenantID)
-				if err != nil {
-					if errors.Is(err, domain.ErrTenantNotFound) {
-						server.RenderError(w, r, http.StatusForbidden, "tenant_not_found", "Tenant not found")
-						return
-					}
-					server.RenderError(w, r, http.StatusInternalServerError, "tenant_lookup_failed", "Failed to resolve tenant")
+			tenant, err := uc.GetByID(r.Context(), tenantID)
+			if err != nil {
+				if errors.Is(err, domain.ErrTenantNotFound) {
+					server.RenderError(w, r, http.StatusForbidden, "tenant_not_found", "Tenant not found")
 					return
 				}
-				if !tenant.IsActive() {
-					server.RenderError(w, r, http.StatusForbidden, "tenant_suspended", "Tenant is not active")
-					return
-				}
+				server.RenderError(w, r, http.StatusInternalServerError, "tenant_lookup_failed", "Failed to resolve tenant")
+				return
+			}
+			if tenant.IsSuspended() {
+				server.RenderError(w, r, http.StatusForbidden, "tenant_suspended", "Tenant is suspended")
+				return
+			}
+			if !tenant.IsActive() {
+				server.RenderError(w, r, http.StatusForbidden, "tenant_not_active", "Tenant is not active")
+				return
+			}
 
-				// Membership check: if user is authenticated, verify they belong to this tenant.
-				userID, ok := identitydomain.UserIDFromContext(r.Context())
-				if ok {
-					isMember, err := uc.IsMember(r.Context(), tenantID, userID)
-					if err != nil {
-						server.RenderError(w, r, http.StatusInternalServerError, "membership_check_failed", "Failed to check membership")
-						return
-					}
-					if !isMember {
-						server.RenderError(w, r, http.StatusForbidden, "not_a_member", "User is not a member of this tenant")
-						return
-					}
+			// Membership check: if user is authenticated, verify they belong to this tenant.
+			userID, ok := identitydomain.UserIDFromContext(r.Context())
+			if ok {
+				isMember, err := uc.IsMember(r.Context(), tenantID, userID)
+				if err != nil {
+					server.RenderError(w, r, http.StatusInternalServerError, "membership_check_failed", "Failed to check membership")
+					return
+				}
+				if !isMember {
+					server.RenderError(w, r, http.StatusForbidden, "not_a_member", "User is not a member of this tenant")
+					return
 				}
 			}
 
