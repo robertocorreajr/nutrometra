@@ -1,0 +1,14 @@
+# DEV CREDENTIALS ONLY — never use in production
+# Admin login: admin@nutrometra.local / Admin1234!
+FirstInstance:
+  Org:
+    Name: Nutrometra
+    Human:
+      UserName: admin
+      FirstName: Admin
+      LastName: Nutrometra
+      Email:
+        Address: admin@nutrometra.local
+        Verified: true
+      Password: Admin1234!
+      PasswordChangeRequired: false

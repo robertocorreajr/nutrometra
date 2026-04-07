@@ -1,0 +1,159 @@
+# ============================================================
+# Git worktrees
+# ============================================================
+.worktrees/
+
+# ============================================================
+# OS
+# ============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ============================================================
+# Editor / IDE
+# ============================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.editorconfig.local
+
+# ============================================================
+# Go
+# ============================================================
+# Binaries
+bin/
+dist/
+services/api/api
+services/api/migrate
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+*.test
+*.out
+coverage.txt
+coverage.html
+coverage.out
+
+# Vendor (only if not vendoring)
+# vendor/
+
+# Go workspace
+go.work.sum
+
+# Air (live reload)
+tmp/
+
+# ============================================================
+# Node / Frontend
+# ============================================================
+node_modules/
+.npm
+.pnpm-store/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+.next/
+.nuxt/
+.svelte-kit/
+out/
+build/
+dist/
+.output/
+.vercel/
+
+# Cache
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+.stylelintcache
+tsconfig.tsbuildinfo
+
+# ============================================================
+# Secrets e configuração local
+# ============================================================
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+config/local.*
+config/*.local.*
+
+# ============================================================
+# Docker
+# ============================================================
+.docker/
+
+# ============================================================
+# Migrations temporárias / geradas
+# ============================================================
+# Manter migrations versionadas; ignorar apenas geradas localmente se necessário
+
+# ============================================================
+# Logs
+# ============================================================
+*.log
+logs/
+log/
+
+# ============================================================
+# Object storage / uploads locais
+# ============================================================
+uploads/
+storage/local/
+public/uploads/
+
+# ============================================================
+# PDFs e exports gerados localmente
+# ============================================================
+exports/
+generated/
+
+# ============================================================
+# Testes e cobertura
+# ============================================================
+.testcache/
+test-results/
+junit*.xml
+report*.xml
+
+# ============================================================
+# Ferramentas de observabilidade local
+# ============================================================
+*.prof
+*.pprof
+trace.out
+
+# ============================================================
+# Terraform / infra
+# ============================================================
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraformrc
+terraform.rc
