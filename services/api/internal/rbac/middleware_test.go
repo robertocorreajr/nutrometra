@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mockEnforcer implements repository.Enforcer for tests.
+// mockEnforcer implements rbac.Enforcer for tests.
 type mockEnforcer struct {
 	result bool
 	err    error

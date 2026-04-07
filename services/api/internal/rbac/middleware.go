@@ -1,17 +1,24 @@
 package rbac
 
 import (
+	"context"
 	"net/http"
 
 	identitydomain "nutrometra/api/internal/identity/domain"
 	"nutrometra/api/internal/platform/server"
-	"nutrometra/api/internal/rbac/repository"
+
+	"github.com/google/uuid"
 )
+
+// Enforcer checks whether a user has a specific permission within a tenant.
+type Enforcer interface {
+	HasPermission(ctx context.Context, userID, tenantID uuid.UUID, permissionCode string) (bool, error)
+}
 
 // RequirePermission returns a middleware that denies access if the authenticated
 // user does not have the specified permission in the current tenant.
 // Deny-by-default: missing user or tenant in context = 403.
-func RequirePermission(permission string, enforcer repository.Enforcer) func(http.Handler) http.Handler {
+func RequirePermission(permission string, enforcer Enforcer) func(http.Handler) http.Handler {
 	if enforcer == nil {
 		panic("RequirePermission requires a non-nil Enforcer")
 	}

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"nutrometra/api/internal/rbac/domain"
@@ -10,10 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Enforcer checks whether a user has a specific permission within a tenant.
-type Enforcer interface {
-	HasPermission(ctx context.Context, userID, tenantID uuid.UUID, permissionCode string) (bool, error)
-}
+// ErrRoleNotFound is returned when a role code does not match any existing role.
+var ErrRoleNotFound = errors.New("rbac: role not found")
 
 // Repository provides RBAC data access.
 type Repository struct {
@@ -50,26 +49,36 @@ func (r *Repository) HasPermission(ctx context.Context, userID, tenantID uuid.UU
 }
 
 // AssignRole assigns a role (by code) to a tenant_user.
+// The SQL verifies that tenant_user_id actually belongs to tenant_id (defense-in-depth).
 // Idempotent via ON CONFLICT DO NOTHING.
+// Returns ErrRoleNotFound if the roleCode does not match any role or the tenant_user
+// does not belong to the specified tenant.
 func (r *Repository) AssignRole(ctx context.Context, tenantID, tenantUserID uuid.UUID, roleCode string) error {
-	_, err := r.pool.Exec(ctx, `
+	tag, err := r.pool.Exec(ctx, `
 		INSERT INTO tenant_user_roles (id, tenant_id, tenant_user_id, role_id)
-		SELECT gen_random_uuid(), $1, $2, r.id
-		FROM roles r
-		WHERE r.code = $3
+		SELECT gen_random_uuid(), tu.tenant_id, tu.id, r.id
+		FROM tenant_users tu
+		CROSS JOIN roles r
+		WHERE tu.id = $1
+		  AND tu.tenant_id = $2
+		  AND r.code = $3
 		ON CONFLICT (tenant_user_id, role_id) DO NOTHING
-	`, tenantID, tenantUserID, roleCode)
+	`, tenantUserID, tenantID, roleCode)
 	if err != nil {
 		return fmt.Errorf("rbac: assign_role: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrRoleNotFound
 	}
 	return nil
 }
 
 // RevokeRole removes a role assignment from a tenant_user.
-func (r *Repository) RevokeRole(ctx context.Context, tenantUserID, roleID uuid.UUID) error {
+// Includes tenant_id in the WHERE clause for defense-in-depth tenant isolation.
+func (r *Repository) RevokeRole(ctx context.Context, tenantID, tenantUserID, roleID uuid.UUID) error {
 	_, err := r.pool.Exec(ctx,
-		`DELETE FROM tenant_user_roles WHERE tenant_user_id = $1 AND role_id = $2`,
-		tenantUserID, roleID,
+		`DELETE FROM tenant_user_roles WHERE tenant_id = $1 AND tenant_user_id = $2 AND role_id = $3`,
+		tenantID, tenantUserID, roleID,
 	)
 	if err != nil {
 		return fmt.Errorf("rbac: revoke_role: %w", err)
@@ -77,10 +86,11 @@ func (r *Repository) RevokeRole(ctx context.Context, tenantUserID, roleID uuid.U
 	return nil
 }
 
-// ListRoles returns all available roles.
-func (r *Repository) ListRoles(ctx context.Context) ([]domain.Role, error) {
+// ListRoles returns roles filtered by application scope.
+func (r *Repository) ListRoles(ctx context.Context, applicationScope string) ([]domain.Role, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, code, application_scope, name, description FROM roles ORDER BY code`,
+		`SELECT id, code, application_scope, name, description FROM roles WHERE application_scope = $1 ORDER BY code`,
+		applicationScope,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("rbac: list_roles: %w", err)
@@ -95,5 +105,8 @@ func (r *Repository) ListRoles(ctx context.Context) ([]domain.Role, error) {
 		}
 		roles = append(roles, role)
 	}
-	return roles, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rbac: list_roles: %w", err)
+	}
+	return roles, nil
 }
