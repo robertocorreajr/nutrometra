@@ -38,6 +38,7 @@ import (
 	patrepo "nutrometra/api/internal/patient/repository"
 	patuc "nutrometra/api/internal/patient/usecase"
 	"nutrometra/api/internal/platform/audit"
+	"nutrometra/api/internal/platform/cache"
 	"nutrometra/api/internal/platform/config"
 	"nutrometra/api/internal/platform/db"
 	"nutrometra/api/internal/platform/logger"
@@ -92,6 +93,9 @@ func main() {
 	defer redisClient.Close()
 	log.Info("redis connected")
 
+	// --- Cache ---
+	redisCache := cache.NewRedisCache(redisClient)
+
 	// --- Persistent Job Queue ---
 	jobQueue := queue.NewPostgresQueue(pool)
 
@@ -133,6 +137,7 @@ func main() {
 	auditSvc := audit.NewService()
 	tenancyUC := tenancyuc.NewTenantUsecase(tenancyRepo)
 	entitlementSvc := billinguc.NewEntitlementService(billingRepo)
+	cachedEntitlementSvc := billinguc.NewCachedEntitlementService(entitlementSvc, redisCache)
 	entitlementAdapter := billinguc.NewEntitlementAdapter(entitlementSvc)
 
 	// Phase 2 usecases
@@ -167,7 +172,7 @@ func main() {
 
 	tenancyHandler := tenancy.NewHandler(tenancyUC)
 	rbacHandler := rbac.NewHandler(rbacRepo, pool, auditSvc)
-	billingHandler := billing.NewHandler(billingRepo, entitlementSvc, pool, auditSvc)
+	billingHandler := billing.NewHandler(billingRepo, entitlementSvc, cachedEntitlementSvc, pool, auditSvc)
 	healthChecker := observability.NewHealthChecker(pool, redisClient, cfg.Zitadel.Issuer)
 
 	// Phase 2 handlers

@@ -17,15 +17,16 @@ import (
 
 // Handler exposes HTTP endpoints for billing operations.
 type Handler struct {
-	repo        *repository.Repository
-	entitlement *usecase.EntitlementService
-	pool        *pgxpool.Pool
-	auditSvc    *audit.Service
+	repo              *repository.Repository
+	entitlement       *usecase.EntitlementService
+	cachedEntitlement *usecase.CachedEntitlementService
+	pool              *pgxpool.Pool
+	auditSvc          *audit.Service
 }
 
 // NewHandler creates a billing Handler.
-func NewHandler(repo *repository.Repository, entitlement *usecase.EntitlementService, pool *pgxpool.Pool, auditSvc *audit.Service) *Handler {
-	return &Handler{repo: repo, entitlement: entitlement, pool: pool, auditSvc: auditSvc}
+func NewHandler(repo *repository.Repository, entitlement *usecase.EntitlementService, cachedEntitlement *usecase.CachedEntitlementService, pool *pgxpool.Pool, auditSvc *audit.Service) *Handler {
+	return &Handler{repo: repo, entitlement: entitlement, cachedEntitlement: cachedEntitlement, pool: pool, auditSvc: auditSvc}
 }
 
 type planResponse struct {
@@ -152,6 +153,10 @@ func (h *Handler) ActivateTrial(w http.ResponseWriter, r *http.Request) {
 	)
 	_ = h.auditSvc.Write(r.Context(), h.pool, entry)
 
+	if h.cachedEntitlement != nil {
+		h.cachedEntitlement.InvalidateEntitlements(r.Context(), tenantID)
+	}
+
 	server.RenderJSON(w, http.StatusCreated, toSubResponse(&sub))
 }
 
@@ -164,7 +169,13 @@ func (h *Handler) GetEntitlements(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entitlements, err := h.entitlement.GetAllEntitlements(r.Context(), tenantID)
+	var entitlements map[string]*domain.Entitlement
+	var err error
+	if h.cachedEntitlement != nil {
+		entitlements, err = h.cachedEntitlement.GetAllEntitlements(r.Context(), tenantID)
+	} else {
+		entitlements, err = h.entitlement.GetAllEntitlements(r.Context(), tenantID)
+	}
 	if err != nil {
 		server.RenderError(w, r, http.StatusInternalServerError, "entitlements_failed", "Failed to get entitlements")
 		return
