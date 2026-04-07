@@ -14,11 +14,12 @@ import (
 func TestNewHandler(t *testing.T) {
 	auditSvc := audit.NewService()
 	provider := NewGoogleCalendarProvider()
+	testKey := generateTestKey(t)
 	cfg := config.GoogleConfig{
 		ClientID:      "test-client-id",
 		ClientSecret:  "test-client-secret",
 		RedirectURL:   "http://localhost:8081/integrations/google/callback",
-		EncryptionKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		EncryptionKey: testKey,
 	}
 
 	handler := NewHandler(nil, nil, provider, auditSvc, cfg, nil)
@@ -33,10 +34,8 @@ func TestNewHandler(t *testing.T) {
 }
 
 func TestStateTokenGenerateAndVerify(t *testing.T) {
-	cfg := config.GoogleConfig{
-		EncryptionKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-	}
-	handler := &Handler{encryptionKey: cfg.EncryptionKey}
+	testKey := generateTestKey(t)
+	handler := &Handler{encryptionKey: testKey}
 
 	tenantID := uuid.New()
 	userID := uuid.New()
@@ -52,10 +51,8 @@ func TestStateTokenGenerateAndVerify(t *testing.T) {
 }
 
 func TestStateTokenTampered(t *testing.T) {
-	cfg := config.GoogleConfig{
-		EncryptionKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-	}
-	handler := &Handler{encryptionKey: cfg.EncryptionKey}
+	testKey := generateTestKey(t)
+	handler := &Handler{encryptionKey: testKey}
 
 	tenantID := uuid.New()
 	userID := uuid.New()
@@ -70,8 +67,8 @@ func TestStateTokenTampered(t *testing.T) {
 }
 
 func TestStateTokenDifferentKey(t *testing.T) {
-	handler1 := &Handler{encryptionKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}
-	handler2 := &Handler{encryptionKey: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"}
+	handler1 := &Handler{encryptionKey: generateTestKey(t)}
+	handler2 := &Handler{encryptionKey: generateTestKey(t)}
 
 	tenantID := uuid.New()
 	userID := uuid.New()
@@ -85,7 +82,7 @@ func TestStateTokenDifferentKey(t *testing.T) {
 }
 
 func TestStateTokenInvalidFormat(t *testing.T) {
-	handler := &Handler{encryptionKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}
+	handler := &Handler{encryptionKey: generateTestKey(t)}
 
 	tests := []struct {
 		name  string
