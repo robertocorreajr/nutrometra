@@ -14,6 +14,13 @@ type Config struct {
 	Postgres PostgresConfig
 	Redis    RedisConfig
 	Zitadel  ZitadelConfig
+	Stripe   StripeConfig
+}
+
+type StripeConfig struct {
+	SecretKey      string
+	WebhookSecret  string
+	PublishableKey string
 }
 
 type APIConfig struct {
@@ -92,6 +99,11 @@ func Load() (*Config, error) {
 			Issuer:   zitadelIssuer,
 			ClientID: zitadelClientID,
 			Domain:   envStr("ZITADEL_DOMAIN", "localhost"),
+		},
+		Stripe: StripeConfig{
+			SecretKey:      envStr("STRIPE_SECRET_KEY", ""),
+			WebhookSecret:  envStr("STRIPE_WEBHOOK_SECRET", ""),
+			PublishableKey: envStr("STRIPE_PUBLISHABLE_KEY", ""),
 		},
 	}, nil
 }
