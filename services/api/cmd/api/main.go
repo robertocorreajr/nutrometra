@@ -43,6 +43,7 @@ import (
 	"nutrometra/api/internal/platform/logger"
 	"nutrometra/api/internal/platform/observability"
 	"nutrometra/api/internal/platform/pdfgen"
+	"nutrometra/api/internal/platform/queue"
 	apiredis "nutrometra/api/internal/platform/redis"
 	"nutrometra/api/internal/platform/server"
 	"nutrometra/api/internal/platform/worker"
@@ -90,6 +91,9 @@ func main() {
 	}
 	defer redisClient.Close()
 	log.Info("redis connected")
+
+	// --- Persistent Job Queue ---
+	jobQueue := queue.NewPostgresQueue(pool)
 
 	// --- OIDC Validator ---
 
@@ -443,6 +447,7 @@ func main() {
 
 	// --- Start worker & server ---
 
+	jobQueue.Start(ctx)
 	bgWorker.Start(ctx)
 
 	quit := make(chan os.Signal, 1)
@@ -458,6 +463,7 @@ func main() {
 
 	<-quit
 	log.Info("shutting down...")
+	jobQueue.Stop()
 	bgWorker.Stop()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
