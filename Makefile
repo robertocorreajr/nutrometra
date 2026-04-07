@@ -1,3 +1,6 @@
+-include .env
+export
+
 .PHONY: dev dev-detached dev-down migrate-up migrate-down test test-integration lint build setup setup-zitadel
 
 COMPOSE = docker compose --env-file .env -f infra/docker-compose.yml
@@ -12,13 +15,15 @@ dev-down:
 	$(COMPOSE) down
 
 migrate-up:
-	docker exec -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=nutrometra \
-		-e POSTGRES_USER=nutrometra -e POSTGRES_PASSWORD=nutrometra_dev -e POSTGRES_SSLMODE=disable \
+	docker exec -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 \
+		-e POSTGRES_DB=$(POSTGRES_DB) -e POSTGRES_USER=$(POSTGRES_USER) \
+		-e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) -e POSTGRES_SSLMODE=disable \
 		infra-api-1 go run ./cmd/migrate up
 
 migrate-down:
-	docker exec -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=nutrometra \
-		-e POSTGRES_USER=nutrometra -e POSTGRES_PASSWORD=nutrometra_dev -e POSTGRES_SSLMODE=disable \
+	docker exec -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 \
+		-e POSTGRES_DB=$(POSTGRES_DB) -e POSTGRES_USER=$(POSTGRES_USER) \
+		-e POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) -e POSTGRES_SSLMODE=disable \
 		infra-api-1 go run ./cmd/migrate down 1
 
 test:

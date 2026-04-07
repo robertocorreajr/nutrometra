@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 
@@ -58,7 +59,16 @@ func Load() (*Config, error) {
 
 	zitadelClientID := os.Getenv("ZITADEL_CLIENT_ID")
 	if zitadelClientID == "" {
-		return nil, fmt.Errorf("ZITADEL_CLIENT_ID is required")
+		env := envStr("API_ENV", "development")
+		if env != "development" {
+			return nil, fmt.Errorf("ZITADEL_CLIENT_ID is required in non-development environments")
+		}
+		slog.Warn("ZITADEL_CLIENT_ID not set — OIDC token validation will reject all tokens. Run: make setup-zitadel")
+	}
+
+	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
+	if postgresPassword == "" {
+		return nil, fmt.Errorf("POSTGRES_PASSWORD is required")
 	}
 
 	return &Config{
@@ -72,7 +82,7 @@ func Load() (*Config, error) {
 			Port:     envInt("POSTGRES_PORT", 5432),
 			DB:       envStr("POSTGRES_DB", "nutrometra"),
 			User:     envStr("POSTGRES_USER", "nutrometra"),
-			Password: envStr("POSTGRES_PASSWORD", "nutrometra_dev"),
+			Password: postgresPassword,
 		},
 		Redis: RedisConfig{
 			Addr:     envStr("REDIS_ADDR", "localhost:6379"),
