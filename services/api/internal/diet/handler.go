@@ -690,6 +690,15 @@ func (h *Handler) UpdateMeal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	actorID, _ := identitydomain.UserIDFromContext(r.Context())
+	entry := audit.NewEntry(
+		audit.WithTenantID(tenantID),
+		audit.WithActor(actorID, audit.ScopeTenant),
+		audit.WithEntity("diet_meal", mealID),
+		audit.WithAction("meal_updated"),
+	)
+	_ = h.auditSvc.Write(r.Context(), h.pool, entry)
+
 	server.RenderJSON(w, http.StatusOK, toMealResponse(m))
 }
 
@@ -849,6 +858,15 @@ func (h *Handler) UpdateMealItem(w http.ResponseWriter, r *http.Request) {
 		server.RenderError(w, r, http.StatusBadRequest, "update_item_failed", err.Error())
 		return
 	}
+
+	actorID, _ := identitydomain.UserIDFromContext(r.Context())
+	entry := audit.NewEntry(
+		audit.WithTenantID(tenantID),
+		audit.WithActor(actorID, audit.ScopeTenant),
+		audit.WithEntity("diet_meal_item", itemID),
+		audit.WithAction("meal_item_updated"),
+	)
+	_ = h.auditSvc.Write(r.Context(), h.pool, entry)
 
 	server.RenderJSON(w, http.StatusOK, toMealItemResponse(item))
 }
