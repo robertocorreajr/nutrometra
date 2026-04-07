@@ -43,7 +43,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/.well-known/openid-configuration > /dev/null || exit 1"]
+      test: ["CMD", "/app/zitadel", "ready", "--config", "/config.yaml"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -62,6 +62,7 @@ services:
       REDIS_ADDR: redis:6379
       ZITADEL_ISSUER: http://zitadel:8080
       ZITADEL_DOMAIN: localhost
+      ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID:-placeholder}
       API_PORT: 8081
       API_ENV: development
       LOG_LEVEL: debug

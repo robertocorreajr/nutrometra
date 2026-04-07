@@ -16,3 +16,7 @@ CREATE DATABASE zitadel
 -- Usuário dedicado para a aplicação
 CREATE USER nutrometra WITH PASSWORD 'nutrometra_dev';
 GRANT ALL PRIVILEGES ON DATABASE nutrometra TO nutrometra;
+
+-- PostgreSQL 15+ requires explicit schema permission
+\c nutrometra
+GRANT ALL ON SCHEMA public TO nutrometra;

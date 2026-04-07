@@ -22,12 +22,12 @@ Database:
     MaxConnIdleTime: 5m
     User:
       Username: postgres
-      Password: ${POSTGRES_ROOT_PASSWORD}
+      Password: postgres
       SSL:
         Mode: disable
     Admin:
       Username: postgres
-      Password: ${POSTGRES_ROOT_PASSWORD}
+      Password: postgres
       SSL:
         Mode: disable
 
