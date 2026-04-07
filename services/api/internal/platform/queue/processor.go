@@ -33,6 +33,9 @@ func (q *PostgresQueue) processLoop(ctx context.Context) {
 	ticker := time.NewTicker(q.pollInterval)
 	defer ticker.Stop()
 
+	// Recover stale processing jobs on startup
+	q.recoverStaleJobs(ctx)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -56,7 +59,9 @@ func (q *PostgresQueue) processOne(ctx context.Context) {
 	handler, ok := q.handlers[rec.JobType]
 	if !ok {
 		slog.Error("queue: no handler registered", "job_type", rec.JobType, "job_id", rec.ID)
-		_ = q.nack(ctx, rec.ID, rec.Attempts, rec.MaxAttempts, fmt.Errorf("no handler for job type: %s", rec.JobType))
+		if nackErr := q.nack(ctx, rec.ID, rec.Attempts, rec.MaxAttempts, fmt.Errorf("no handler for job type: %s", rec.JobType)); nackErr != nil {
+			slog.Error("queue: nack failed", "job_id", rec.ID, "error", nackErr)
+		}
 		return
 	}
 
@@ -64,7 +69,9 @@ func (q *PostgresQueue) processOne(ctx context.Context) {
 
 	if err := handler(ctx, rec); err != nil {
 		slog.Error("queue: job failed", "job_id", rec.ID, "type", rec.JobType, "error", err)
-		_ = q.nack(ctx, rec.ID, rec.Attempts, rec.MaxAttempts, err)
+		if nackErr := q.nack(ctx, rec.ID, rec.Attempts, rec.MaxAttempts, err); nackErr != nil {
+			slog.Error("queue: nack failed", "job_id", rec.ID, "error", nackErr)
+		}
 		return
 	}
 

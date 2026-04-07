@@ -3,11 +3,14 @@ package queue
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -88,8 +91,10 @@ func (q *PostgresQueue) dequeue(ctx context.Context) (*JobRecord, error) {
 		&rec.StartedAt, &rec.CompletedAt, &rec.CreatedAt,
 	)
 	if err != nil {
-		// pgx returns pgx.ErrNoRows when no rows found — treat as "no work"
-		return nil, nil
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("queue: dequeue scan: %w", err)
 	}
 	rec.PayloadJSON = payloadBytes
 
@@ -114,6 +119,27 @@ func (q *PostgresQueue) ack(ctx context.Context, jobID uuid.UUID) error {
 		jobID,
 	)
 	return err
+}
+
+// recoverStaleJobs moves jobs stuck in 'processing' status (e.g. from a crash)
+// back to 'failed' so they can be retried.
+func (q *PostgresQueue) recoverStaleJobs(ctx context.Context) {
+	const staleTimeout = 5 * time.Minute
+	cutoff := time.Now().UTC().Add(-staleTimeout)
+
+	tag, err := q.pool.Exec(ctx,
+		`UPDATE background_jobs
+		 SET status = 'failed', last_error = 'recovered: job was stuck in processing'
+		 WHERE status = 'processing' AND started_at < $1`,
+		cutoff,
+	)
+	if err != nil {
+		slog.Error("queue: recover stale jobs failed", "error", err)
+		return
+	}
+	if tag.RowsAffected() > 0 {
+		slog.Warn("queue: recovered stale jobs", "count", tag.RowsAffected())
+	}
 }
 
 // nack marks a job as failed with retry or dead.
