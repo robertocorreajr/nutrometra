@@ -5,27 +5,8 @@ import { PageHeader, DataTable, LoadingState, ErrorState, EmptyState } from "@nu
 import type { Column } from "@nutrometra/ui"
 import { useBackofficeTenants } from "@nutrometra/api-client/hooks"
 import type { BackofficeTenant } from "@nutrometra/api-client/types"
+import { tenantStatusLabels, tenantStatusColors } from "@/lib/schemas/backoffice"
 import { format, parseISO } from "date-fns"
-
-function getStatusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    active: "Ativo",
-    trialing: "Trial",
-    suspended: "Suspenso",
-    cancelled: "Cancelado",
-  }
-  return labels[status] ?? status
-}
-
-function getStatusColor(status: string): string {
-  const colors: Record<string, string> = {
-    active: "bg-green-100 text-green-700",
-    trialing: "bg-blue-100 text-blue-700",
-    suspended: "bg-yellow-100 text-yellow-700",
-    cancelled: "bg-red-100 text-red-700",
-  }
-  return colors[status] ?? "bg-gray-100 text-gray-700"
-}
 
 const columns: Column<BackofficeTenant>[] = [
   {
@@ -52,9 +33,9 @@ const columns: Column<BackofficeTenant>[] = [
     header: "Status",
     render: (row) => (
       <span
-        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(row.status)}`}
+        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${tenantStatusColors[row.status] ?? "bg-gray-100 text-gray-700"}`}
       >
-        {getStatusLabel(row.status)}
+        {tenantStatusLabels[row.status] ?? row.status}
       </span>
     ),
   },

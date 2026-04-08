@@ -17,7 +17,7 @@ export default function MedidasPage() {
       {measurements && measurements.length === 0 && <EmptyState title="Nenhuma medida" description="Nenhuma avaliacao registrada ainda." />}
       {measurements && measurements.length > 0 && (
         <>
-          <LatestMeasurement measurement={measurements.sort((a, b) => b.measured_at.localeCompare(a.measured_at))[0]} />
+          <LatestMeasurement measurement={[...measurements].sort((a, b) => b.measured_at.localeCompare(a.measured_at))[0]} />
           {measurements.length > 1 && <MeasurementHistory measurements={measurements} />}
         </>
       )}

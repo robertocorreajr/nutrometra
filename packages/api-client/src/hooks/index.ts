@@ -115,6 +115,7 @@ export {
   useMyDiets,
   useMyDiet,
   useMyDocuments,
+  useMyDocument,
   useMyMeasurements,
   useMyProfile,
 } from "./patient-portal"

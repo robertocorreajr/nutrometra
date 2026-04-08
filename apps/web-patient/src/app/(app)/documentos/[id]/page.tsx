@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation"
 import { PageHeader, Card, CardContent, LoadingState, ErrorState } from "@nutrometra/ui"
-import { useMyDocuments } from "@nutrometra/api-client/hooks"
+import { useMyDocument } from "@nutrometra/api-client/hooks"
 import { format, parseISO } from "date-fns"
 
 const typeLabels: Record<string, string> = {
@@ -13,11 +13,7 @@ const typeLabels: Record<string, string> = {
 
 export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>()
-  // Patient portal doesn't have a useDocument(id) hook — we fetch all and find
-  // TODO: Add useMyDocument(id) hook if needed for performance
-  const patientId = ""
-  const { data: documents, isLoading, isError, refetch } = useMyDocuments(patientId)
-  const doc = documents?.find((d) => d.id === id)
+  const { data: doc, isLoading, isError, refetch } = useMyDocument(id)
 
   if (isLoading) return <LoadingState />
   if (isError) return <ErrorState message="Nao foi possivel carregar o documento." onRetry={refetch} />

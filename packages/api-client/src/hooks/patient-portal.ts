@@ -64,6 +64,14 @@ export function useMyDocuments(patientId: string) {
   })
 }
 
+export function useMyDocument(id: string) {
+  return useQuery({
+    queryKey: ["my-document", id],
+    queryFn: () => api.get<ClinicalDocument>(`/documents/${id}`),
+    enabled: !!id,
+  })
+}
+
 // --- Measurements ---
 
 export function useMyMeasurements(patientId: string) {
