@@ -21,3 +21,28 @@ export type {
   ClinicalAttachment,
   AttachmentRequest,
 } from "./types/clinical"
+export type {
+  MeasurementSource,
+  BodyMeasurement,
+  CreateMeasurementRequest,
+} from "./types/bioimpedance"
+export type {
+  SuggestionType,
+  SuggestionStatus,
+  AISuggestion,
+  CreateSuggestionRequest,
+} from "./types/ai"
+export type {
+  ServiceMode,
+  AppointmentStatus,
+  AppointmentSource,
+  AvailabilityRule,
+  CreateAvailabilityRuleRequest,
+  ScheduleBlock,
+  CreateBlockRequest,
+  TimeSlot,
+  Appointment,
+  CreateAppointmentRequest,
+  UpdateStatusRequest,
+  RescheduleRequest,
+} from "./types/scheduling"
