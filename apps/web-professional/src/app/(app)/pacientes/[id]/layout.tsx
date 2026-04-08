@@ -48,7 +48,8 @@ export default function PatientLayout({ children }: PatientLayoutProps) {
     { label: "Anamnese", href: `${basePath}/anamnese` },
     { label: "Evoluções", href: `${basePath}/evolucoes` },
     { label: "Anexos", href: `${basePath}/anexos` },
-    { label: "Composicao Corporal", href: `${basePath}/composicao-corporal` },
+    { label: "Composição Corporal", href: `${basePath}/composicao-corporal` },
+    { label: "IA Assistiva", href: `${basePath}/ia` },
   ]
 
   // Active detection: exact match OR prefix match for sub-routes

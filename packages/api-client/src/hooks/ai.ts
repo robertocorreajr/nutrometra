@@ -26,11 +26,15 @@ export function useAISuggestions(params?: AISuggestionsParams) {
   })
 }
 
-export function useAISuggestion(id: string) {
+export function useAISuggestion(
+  id: string,
+  options?: { refetchInterval?: number | false }
+) {
   return useQuery({
     queryKey: ["ai-suggestions", id],
     queryFn: () => api.get<AISuggestion>(`/ai/suggestions/${id}`),
     enabled: !!id,
+    refetchInterval: options?.refetchInterval,
   })
 }
 
