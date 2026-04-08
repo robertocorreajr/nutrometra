@@ -50,8 +50,8 @@ func (uc *Usecase) Create(ctx context.Context, p *domain.Professional) error {
 		return err
 	}
 
-	// Check entitlement: max_professionals
-	enabled, limit, err := uc.entitlements.CheckEntitlement(ctx, p.TenantID, "max_professionals")
+	// Check entitlement: professionals:create
+	enabled, limit, err := uc.entitlements.CheckEntitlement(ctx, p.TenantID, "professionals:create")
 	if err != nil {
 		return fmt.Errorf("professional: check_entitlement: %w", err)
 	}
@@ -106,8 +106,8 @@ func (uc *Usecase) CreateAddress(ctx context.Context, a *domain.Address) error {
 		return err
 	}
 
-	// Check entitlement: max_addresses
-	enabled, limit, err := uc.entitlements.CheckEntitlement(ctx, a.TenantID, "max_addresses")
+	// Check entitlement: addresses:create
+	enabled, limit, err := uc.entitlements.CheckEntitlement(ctx, a.TenantID, "addresses:create")
 	if err != nil {
 		return fmt.Errorf("professional: check_entitlement: %w", err)
 	}
