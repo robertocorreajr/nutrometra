@@ -12,6 +12,8 @@
     "@nutrometra/api-client": "workspace:*",
     "@nutrometra/auth": "workspace:*",
     "@nutrometra/ui": "workspace:*",
+    "date-fns": "^3",
+    "lucide-react": "^0.400",
     "next": "14.2.5",
     "next-auth": "^4",
     "react": "^18",
