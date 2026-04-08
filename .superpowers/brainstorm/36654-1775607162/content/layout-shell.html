@@ -1,0 +1,144 @@
+<h2>Layout do Portal Profissional</h2>
+<p class="subtitle">Como deve ser a estrutura principal de navegação?</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#1a1a2e;border-radius:8px;padding:0;overflow:hidden;height:220px;display:flex;">
+        <!-- Sidebar -->
+        <div style="width:60px;background:#16213e;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:16px;">
+          <div style="width:32px;height:32px;background:#0f3460;border-radius:8px;"></div>
+          <div style="width:24px;height:2px;background:#333;margin:4px 0;"></div>
+          <div style="width:28px;height:28px;background:#e94560;border-radius:6px;"></div>
+          <div style="width:28px;height:28px;background:#0f3460;border-radius:6px;"></div>
+          <div style="width:28px;height:28px;background:#0f3460;border-radius:6px;"></div>
+          <div style="width:28px;height:28px;background:#0f3460;border-radius:6px;"></div>
+          <div style="width:28px;height:28px;background:#0f3460;border-radius:6px;"></div>
+        </div>
+        <!-- Content area -->
+        <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:8px;">
+          <!-- Header -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="font-size:11px;color:#aaa;font-weight:600;">Dashboard</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <div style="width:20px;height:20px;background:#0f3460;border-radius:50%;"></div>
+            </div>
+          </div>
+          <!-- Content cards -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;flex:1;">
+            <div style="background:#16213e;border-radius:6px;padding:8px;">
+              <div style="font-size:9px;color:#888;">Pacientes</div>
+              <div style="font-size:16px;color:#e94560;font-weight:bold;">47</div>
+            </div>
+            <div style="background:#16213e;border-radius:6px;padding:8px;">
+              <div style="font-size:9px;color:#888;">Consultas hoje</div>
+              <div style="font-size:16px;color:#4ecca3;font-weight:bold;">5</div>
+            </div>
+            <div style="background:#16213e;border-radius:6px;padding:8px;grid-column:1/-1;">
+              <div style="font-size:9px;color:#888;">Proximas consultas</div>
+              <div style="display:flex;flex-direction:column;gap:3px;margin-top:4px;">
+                <div style="height:6px;background:#0f3460;border-radius:3px;width:80%;"></div>
+                <div style="height:6px;background:#0f3460;border-radius:3px;width:65%;"></div>
+                <div style="height:6px;background:#0f3460;border-radius:3px;width:72%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Sidebar compacta (icones)</h3>
+      <p>Sidebar estreita com icones, expande ao hover. Maximiza area de conteudo. Estilo moderno tipo Linear/Notion.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#1a1a2e;border-radius:8px;padding:0;overflow:hidden;height:220px;display:flex;">
+        <!-- Sidebar expanded -->
+        <div style="width:180px;background:#16213e;display:flex;flex-direction:column;padding:12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+            <div style="width:28px;height:28px;background:#e94560;border-radius:6px;"></div>
+            <div style="font-size:11px;color:#ccc;font-weight:600;">Nutrometra</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <div style="padding:6px 8px;background:#e94560;border-radius:4px;font-size:9px;color:white;">Dashboard</div>
+            <div style="padding:6px 8px;font-size:9px;color:#888;">Pacientes</div>
+            <div style="padding:6px 8px;font-size:9px;color:#888;">Agenda</div>
+            <div style="padding:6px 8px;font-size:9px;color:#888;">Dietas</div>
+            <div style="padding:6px 8px;font-size:9px;color:#888;">Documentos</div>
+            <div style="padding:6px 8px;font-size:9px;color:#888;">Configuracoes</div>
+          </div>
+        </div>
+        <!-- Content area -->
+        <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="font-size:11px;color:#aaa;font-weight:600;">Dashboard</div>
+            <div style="width:20px;height:20px;background:#0f3460;border-radius:50%;"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;flex:1;">
+            <div style="background:#16213e;border-radius:6px;padding:8px;">
+              <div style="font-size:9px;color:#888;">Pacientes</div>
+              <div style="font-size:16px;color:#e94560;font-weight:bold;">47</div>
+            </div>
+            <div style="background:#16213e;border-radius:6px;padding:8px;">
+              <div style="font-size:9px;color:#888;">Consultas hoje</div>
+              <div style="font-size:16px;color:#4ecca3;font-weight:bold;">5</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Sidebar expandida (com labels)</h3>
+      <p>Sidebar larga com icones + texto. Navegacao sempre visivel. Padrao classico tipo Google Workspace/Asana.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#1a1a2e;border-radius:8px;padding:0;overflow:hidden;height:220px;display:flex;flex-direction:column;">
+        <!-- Top nav -->
+        <div style="background:#16213e;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:24px;height:24px;background:#e94560;border-radius:6px;"></div>
+            <div style="font-size:9px;color:#ccc;padding:4px 8px;background:#e94560;border-radius:4px;">Dashboard</div>
+            <div style="font-size:9px;color:#888;">Pacientes</div>
+            <div style="font-size:9px;color:#888;">Agenda</div>
+            <div style="font-size:9px;color:#888;">Dietas</div>
+          </div>
+          <div style="width:20px;height:20px;background:#0f3460;border-radius:50%;"></div>
+        </div>
+        <!-- Content area -->
+        <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+            <div style="background:#16213e;border-radius:6px;padding:8px;">
+              <div style="font-size:9px;color:#888;">Pacientes</div>
+              <div style="font-size:16px;color:#e94560;font-weight:bold;">47</div>
+            </div>
+            <div style="background:#16213e;border-radius:6px;padding:8px;">
+              <div style="font-size:9px;color:#888;">Consultas hoje</div>
+              <div style="font-size:16px;color:#4ecca3;font-weight:bold;">5</div>
+            </div>
+            <div style="background:#16213e;border-radius:6px;padding:8px;">
+              <div style="font-size:9px;color:#888;">Pendencias</div>
+              <div style="font-size:16px;color:#f0a500;font-weight:bold;">3</div>
+            </div>
+          </div>
+          <div style="background:#16213e;border-radius:6px;padding:8px;flex:1;">
+            <div style="font-size:9px;color:#888;">Proximas consultas</div>
+            <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;">
+              <div style="height:6px;background:#0f3460;border-radius:3px;width:80%;"></div>
+              <div style="height:6px;background:#0f3460;border-radius:3px;width:65%;"></div>
+              <div style="height:6px;background:#0f3460;border-radius:3px;width:72%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Top navigation</h3>
+      <p>Menu horizontal no topo. Mais area vertical para conteudo. Funciona bem mobile com hamburger menu. Estilo tipo Stripe Dashboard.</p>
+    </div>
+  </div>
+</div>
