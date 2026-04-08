@@ -25,3 +25,47 @@ export interface Entitlement {
   limit?: number
   source: "override" | "plan" | "default"
 }
+
+export type InvoiceStatus = "draft" | "open" | "paid" | "void" | "uncollectible"
+
+export interface Invoice {
+  ID: string
+  TenantID: string
+  SubscriptionID: string
+  ProviderInvoiceID?: string
+  Status: InvoiceStatus
+  AmountCents: number
+  Currency: string
+  HostedURL?: string
+  PeriodStart: string
+  PeriodEnd: string
+  DueDate?: string
+  PaidAt?: string
+  CreatedAt: string
+  UpdatedAt: string
+}
+
+export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded"
+
+export interface Payment {
+  ID: string
+  TenantID: string
+  InvoiceID: string
+  ProviderPaymentID?: string
+  Status: PaymentStatus
+  AmountCents: number
+  Currency: string
+  FailureReason?: string
+  PaidAt?: string
+  CreatedAt: string
+}
+
+export interface CheckoutRequest {
+  plan_id: string
+  email: string
+  name: string
+}
+
+export interface ChangePlanRequest {
+  plan_id: string
+}

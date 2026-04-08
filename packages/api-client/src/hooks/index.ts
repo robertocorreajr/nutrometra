@@ -1,12 +1,12 @@
-export { usePlans, useSubscription, useEntitlements } from "./billing"
 export {
-  useProfessionalMe,
-  useUpdateProfessional,
-  useAddresses,
-  useCreateAddress,
-  useUpdateAddress,
-  useServiceModes,
-  useSetServiceMode,
+  usePlans, useSubscription, useEntitlements,
+  useActivateTrial, useCheckout, useChangePlan, useCancelSubscription,
+  useInvoices, usePayments,
+} from "./billing"
+export {
+  useProfessionalMe, useUpdateProfessional, useAddresses, useCreateAddress,
+  useUpdateAddress, useServiceModes, useSetServiceMode,
+  useProfessionals, useCreateProfessional,
 } from "./professionals"
 export {
   usePatients,
@@ -98,3 +98,7 @@ export {
   useExport,
   downloadExport,
 } from "./exports"
+export {
+  useGoogleCalendarStatus, useGoogleCalendarAuthorize, useGoogleCalendarDisconnect,
+} from "./integrations"
+export { useRoles, useAssignRole, useRevokeRole } from "./rbac"

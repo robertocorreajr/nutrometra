@@ -2,7 +2,10 @@ export { api, ApiError, configureApiClient } from "./client"
 export { ApiProvider } from "./provider"
 export type { UUID, ErrorResponse, PaginatedResponse } from "./types/common"
 export type { User, TenantMembership } from "./types/auth"
-export type { Plan, Subscription, Entitlement } from "./types/billing"
+export type {
+  Plan, Subscription, Entitlement,
+  InvoiceStatus, Invoice, PaymentStatus, Payment, CheckoutRequest, ChangePlanRequest,
+} from "./types/billing"
 export type {
   Patient,
   CreatePatientRequest,
@@ -86,3 +89,5 @@ export type {
   ExportedFile,
   RequestExportRequest,
 } from "./types/export"
+export type { GoogleCalendarStatus, GoogleAuthorizeResponse } from "./types/integration"
+export type { Role, AssignRoleRequest } from "./types/rbac"
