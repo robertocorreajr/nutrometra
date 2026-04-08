@@ -26,7 +26,13 @@ export default function AnamnesePage() {
     return (
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">{editingAnamnesis ? "Editar Anamnese" : "Nova Anamnese"}</h2>
+          <h2 className="text-lg font-semibold">
+            {editingAnamnesis
+              ? editingAnamnesis.status === "finalized"
+                ? "Visualizar Anamnese"
+                : "Editar Anamnese"
+              : "Nova Anamnese"}
+          </h2>
           <Button variant="ghost" size="sm" onClick={() => { setShowWizard(false); setEditingAnamnesis(null) }}>
             Cancelar
           </Button>
@@ -70,7 +76,7 @@ export default function AnamnesePage() {
           <Card
             key={anamnesis.id}
             className="cursor-pointer hover:bg-accent/50 transition-colors"
-            onClick={() => { if (anamnesis.status === "draft") setEditingAnamnesis(anamnesis) }}
+            onClick={() => setEditingAnamnesis(anamnesis)}
           >
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -84,9 +90,9 @@ export default function AnamnesePage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground line-clamp-2">{anamnesis.chief_complaint || "Sem queixa principal registrada."}</p>
-              {anamnesis.status === "draft" && (
-                <p className="text-xs text-muted-foreground mt-2">Clique para continuar editando</p>
-              )}
+              <p className="text-xs text-muted-foreground mt-2">
+                {anamnesis.status === "draft" ? "Clique para continuar editando" : "Clique para visualizar"}
+              </p>
             </CardContent>
           </Card>
         ))}
