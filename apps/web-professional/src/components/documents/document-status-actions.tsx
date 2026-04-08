@@ -10,6 +10,7 @@ import {
 } from "@nutrometra/api-client/hooks"
 import type { ClinicalDocument } from "@nutrometra/api-client"
 import { CheckCircle, Send, FilePlus, AlertTriangle } from "lucide-react"
+import { ExportPDFButton } from "@/components/pdf-export/export-pdf-button"
 
 type ConfirmAction = "finalize" | "publish" | "new-version" | null
 
@@ -153,14 +154,17 @@ export function DocumentStatusActions({ document, patientId }: DocumentStatusAct
           )}
 
           {document.status === "published" && (
-            <Button
-              variant="ghost"
-              onClick={() => setConfirmAction("new-version")}
-              disabled={isProcessing}
-            >
-              <FilePlus className="h-4 w-4 mr-2" />
-              Nova Versão
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => setConfirmAction("new-version")}
+                disabled={isProcessing}
+              >
+                <FilePlus className="h-4 w-4 mr-2" />
+                Nova Versão
+              </Button>
+              <ExportPDFButton entityType="document" entityId={document.id} />
+            </>
           )}
         </div>
       )}

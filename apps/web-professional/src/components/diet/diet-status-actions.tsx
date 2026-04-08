@@ -11,6 +11,7 @@ import {
 } from "@nutrometra/api-client/hooks"
 import type { Diet } from "@nutrometra/api-client"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
+import { ExportPDFButton } from "@/components/pdf-export/export-pdf-button"
 
 interface DietStatusActionsProps {
   diet: Diet
@@ -96,6 +97,7 @@ export function DietStatusActions({ diet, patientId }: DietStatusActionsProps) {
           <Button size="sm" onClick={() => setDialog("new-version")}>
             Nova Versao
           </Button>
+          <ExportPDFButton entityType="diet" entityId={diet.id} />
         </>
       )}
 
