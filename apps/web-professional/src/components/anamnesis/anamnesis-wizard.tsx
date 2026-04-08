@@ -8,9 +8,9 @@ import {
   useCreateAnamnesis,
   useUpdateAnamnesis,
   useFinalizeAnamnesis,
+  useProfessionalMe,
 } from "@nutrometra/api-client/hooks"
 import type { Anamnesis, AnamnesisRequest } from "@nutrometra/api-client"
-import { useAuth } from "@nutrometra/auth"
 import { api } from "@nutrometra/api-client"
 import { anamnesisSchema, type AnamnesisFormValues } from "@/lib/schemas/anamnesis"
 import { StepClinicalData } from "./steps/step-clinical-data"
@@ -34,7 +34,7 @@ interface AnamnesisWizardProps {
 }
 
 export function AnamnesisWizard({ patientId, existing, onComplete }: AnamnesisWizardProps) {
-  const { user } = useAuth()
+  const { data: professional } = useProfessionalMe()
   const [currentStep, setCurrentStep] = useState(0)
   const [anamnesisId, setAnamnesisId] = useState<string | null>(existing?.id ?? null)
 
@@ -93,7 +93,7 @@ export function AnamnesisWizard({ patientId, existing, onComplete }: AnamnesisWi
   function buildPayload(values: AnamnesisFormValues): AnamnesisRequest {
     return {
       patient_id: patientId,
-      professional_id: user?.id ?? "",
+      professional_id: professional?.id ?? "",
       chief_complaint: values.chief_complaint ?? "",
       history_present_illness: values.history_present_illness ?? "",
       past_medical_history: values.past_medical_history ?? "",

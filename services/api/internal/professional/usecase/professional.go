@@ -14,6 +14,7 @@ import (
 type ProfessionalRepository interface {
 	Create(ctx context.Context, p *domain.Professional) error
 	GetByID(ctx context.Context, tenantID, id uuid.UUID) (*domain.Professional, error)
+	GetByUserID(ctx context.Context, tenantID, userID uuid.UUID) (*domain.Professional, error)
 	List(ctx context.Context, tenantID uuid.UUID) ([]domain.Professional, error)
 	Update(ctx context.Context, p *domain.Professional) error
 	CountByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error)
@@ -49,8 +50,8 @@ func (uc *Usecase) Create(ctx context.Context, p *domain.Professional) error {
 		return err
 	}
 
-	// Check entitlement: max_professionals
-	enabled, limit, err := uc.entitlements.CheckEntitlement(ctx, p.TenantID, "max_professionals")
+	// Check entitlement: professionals:create
+	enabled, limit, err := uc.entitlements.CheckEntitlement(ctx, p.TenantID, "professionals:create")
 	if err != nil {
 		return fmt.Errorf("professional: check_entitlement: %w", err)
 	}
@@ -81,6 +82,11 @@ func (uc *Usecase) GetByID(ctx context.Context, tenantID, id uuid.UUID) (*domain
 	return uc.repo.GetByID(ctx, tenantID, id)
 }
 
+// GetByUserID returns the professional linked to a user within a tenant.
+func (uc *Usecase) GetByUserID(ctx context.Context, tenantID, userID uuid.UUID) (*domain.Professional, error) {
+	return uc.repo.GetByUserID(ctx, tenantID, userID)
+}
+
 // List returns all professionals for a tenant.
 func (uc *Usecase) List(ctx context.Context, tenantID uuid.UUID) ([]domain.Professional, error) {
 	return uc.repo.List(ctx, tenantID)
@@ -100,8 +106,8 @@ func (uc *Usecase) CreateAddress(ctx context.Context, a *domain.Address) error {
 		return err
 	}
 
-	// Check entitlement: max_addresses
-	enabled, limit, err := uc.entitlements.CheckEntitlement(ctx, a.TenantID, "max_addresses")
+	// Check entitlement: addresses:create
+	enabled, limit, err := uc.entitlements.CheckEntitlement(ctx, a.TenantID, "addresses:create")
 	if err != nil {
 		return fmt.Errorf("professional: check_entitlement: %w", err)
 	}
@@ -128,6 +134,20 @@ func (uc *Usecase) CreateAddress(ctx context.Context, a *domain.Address) error {
 	}
 
 	return uc.repo.CreateAddress(ctx, a)
+}
+
+// CreateSelf creates the professional record for the logged-in user.
+// Does not check entitlements since self-provisioning is always allowed.
+func (uc *Usecase) CreateSelf(ctx context.Context, p *domain.Professional) error {
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	p.ID = uuid.New()
+	now := time.Now().UTC()
+	p.CreatedAt = now
+	p.UpdatedAt = now
+	p.Active = true
+	return uc.repo.Create(ctx, p)
 }
 
 // ListAddresses returns addresses for a professional.

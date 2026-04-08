@@ -53,7 +53,7 @@ func (uc *Usecase) Create(ctx context.Context, p *domain.Patient) error {
 		return err
 	}
 
-	enabled, limit, err := uc.entitlements.CheckEntitlement(ctx, p.TenantID, "max_patients")
+	enabled, limit, err := uc.entitlements.CheckEntitlement(ctx, p.TenantID, "patients:create")
 	if err != nil {
 		return fmt.Errorf("patient: check_entitlement: %w", err)
 	}

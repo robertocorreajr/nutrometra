@@ -3,8 +3,7 @@
 import { useParams } from "next/navigation"
 import { useState } from "react"
 import { LoadingState, ErrorState, EmptyState, Button } from "@nutrometra/ui"
-import { useAttachments, useCreateAttachment } from "@nutrometra/api-client/hooks"
-import { useAuth } from "@nutrometra/auth"
+import { useAttachments, useCreateAttachment, useProfessionalMe } from "@nutrometra/api-client/hooks"
 import { AttachmentForm } from "@/components/attachments/attachment-form"
 import { AttachmentGrid } from "@/components/attachments/attachment-grid"
 import type { AttachmentFormValues } from "@/lib/schemas/attachment"
@@ -13,7 +12,7 @@ import { Plus, Paperclip } from "lucide-react"
 export default function AnexosPage() {
   const params = useParams()
   const patientId = params.id as string
-  const { user } = useAuth()
+  const { data: professional } = useProfessionalMe()
 
   const { data: attachments, isLoading, isError, refetch } = useAttachments(patientId)
   const createAttachment = useCreateAttachment(patientId)
@@ -25,7 +24,7 @@ export default function AnexosPage() {
 
     try {
       await createAttachment.mutateAsync({
-        professional_id: user?.id ?? "",
+        professional_id: professional?.id ?? "",
         file_name: data.file_name,
         file_type: data.file_type,
         file_size_bytes: data.file_size_bytes,

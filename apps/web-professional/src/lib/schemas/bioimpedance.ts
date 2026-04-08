@@ -1,0 +1,38 @@
+import { z } from "zod"
+
+export const measurementSchema = z.object({
+  weight_kg: z.coerce.number().min(0.1).max(500).optional(),
+  height_cm: z.coerce.number().min(30).max(300).optional(),
+  body_fat_pct: z.coerce.number().min(0).max(100).optional(),
+  lean_mass_kg: z.coerce.number().min(0).optional(),
+  fat_mass_kg: z.coerce.number().min(0).optional(),
+  muscle_mass_kg: z.coerce.number().min(0).optional(),
+  bone_mass_kg: z.coerce.number().min(0).optional(),
+  water_pct: z.coerce.number().min(0).max(100).optional(),
+  visceral_fat: z.coerce.number().min(0).optional(),
+  basal_metabolic_rate: z.coerce.number().min(0).optional(),
+  waist_cm: z.coerce.number().min(0).optional(),
+  hip_cm: z.coerce.number().min(0).optional(),
+  chest_cm: z.coerce.number().min(0).optional(),
+  right_arm_cm: z.coerce.number().min(0).optional(),
+  left_arm_cm: z.coerce.number().min(0).optional(),
+  right_thigh_cm: z.coerce.number().min(0).optional(),
+  left_thigh_cm: z.coerce.number().min(0).optional(),
+  right_calf_cm: z.coerce.number().min(0).optional(),
+  left_calf_cm: z.coerce.number().min(0).optional(),
+  neck_cm: z.coerce.number().min(0).optional(),
+  abdomen_cm: z.coerce.number().min(0).optional(),
+  triceps_sf_mm: z.coerce.number().min(0).optional(),
+  biceps_sf_mm: z.coerce.number().min(0).optional(),
+  subscapular_sf_mm: z.coerce.number().min(0).optional(),
+  suprailiac_sf_mm: z.coerce.number().min(0).optional(),
+  abdominal_sf_mm: z.coerce.number().min(0).optional(),
+  thigh_sf_mm: z.coerce.number().min(0).optional(),
+  calf_sf_mm: z.coerce.number().min(0).optional(),
+  measured_at: z.string().optional(),
+  source: z.enum(["manual", "device", "import"]).default("manual"),
+  device_model: z.string().optional().default(""),
+  notes: z.string().optional().default(""),
+})
+
+export type MeasurementFormValues = z.infer<typeof measurementSchema>

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"nutrometra/api/internal/professional/domain"
@@ -78,6 +79,54 @@ func toProfResponse(p *domain.Professional) professionalResponse {
 		CreatedAt:          p.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:          p.UpdatedAt.Format(time.RFC3339),
 	}
+}
+
+// GetMe handles GET /professionals/me — returns the professional for the authenticated user.
+func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := identitydomain.TenantIDFromContext(r.Context())
+	if !ok {
+		server.RenderError(w, r, http.StatusBadRequest, "missing_tenant", "No tenant in context")
+		return
+	}
+
+	userID, ok := identitydomain.UserIDFromContext(r.Context())
+	if !ok {
+		server.RenderError(w, r, http.StatusUnauthorized, "unauthenticated", "Not authenticated")
+		return
+	}
+
+	p, err := h.uc.GetByUserID(r.Context(), tenantID, userID)
+	if err != nil {
+		if !errors.Is(err, domain.ErrNotFound) {
+			server.RenderError(w, r, http.StatusInternalServerError, "get_failed", "Failed to get professional")
+			return
+		}
+
+		// Auto-provisioning: create minimal professional record on first access
+		email, _ := identitydomain.UserEmailFromContext(r.Context())
+		fullName := email
+		if atIdx := strings.Index(email, "@"); atIdx > 0 {
+			fullName = strings.ToUpper(email[:1]) + email[1:atIdx]
+		}
+
+		newProf := &domain.Professional{
+			TenantID:           tenantID,
+			UserID:             userID,
+			FullName:           fullName,
+			RegistrationType:   "CRN",
+			RegistrationNumber: "PENDENTE",
+			RegistrationState:  "SP",
+		}
+
+		if createErr := h.uc.CreateSelf(r.Context(), newProf); createErr != nil {
+			server.RenderError(w, r, http.StatusInternalServerError, "create_failed", "Failed to auto-provision professional")
+			return
+		}
+
+		server.RenderJSON(w, http.StatusOK, toProfResponse(newProf))
+		return
+	}
+	server.RenderJSON(w, http.StatusOK, toProfResponse(p))
 }
 
 // Create handles POST /professionals

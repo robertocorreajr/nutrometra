@@ -4,23 +4,31 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { useCreatePatient } from "@nutrometra/api-client/hooks"
-import { useAuth } from "@nutrometra/auth"
-import { PageHeader, Card, CardContent } from "@nutrometra/ui"
+import { useCreatePatient, useProfessionalMe } from "@nutrometra/api-client/hooks"
+import { PageHeader, Card, CardContent, LoadingState, ErrorState } from "@nutrometra/ui"
 import { PatientForm } from "@/components/patient/patient-form"
 import type { PatientFormValues } from "@/lib/schemas/patient"
 
 export default function NovoPacientePage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { data: professional, isLoading: profLoading, isError: profError } = useProfessionalMe()
   const { mutateAsync: createPatient, isPending } = useCreatePatient()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  if (profLoading) return <LoadingState lines={4} />
+  if (profError || !professional) {
+    return (
+      <ErrorState
+        message="Não foi possível carregar seu perfil profissional. Verifique se você tem um registro de profissional cadastrado."
+      />
+    )
+  }
 
   async function handleSubmit(values: PatientFormValues) {
     setErrorMessage(null)
     try {
       const result = await createPatient({
-        professional_id: user?.id ?? "",
+        professional_id: professional!.id,
         full_name: values.full_name,
         email: values.email ?? "",
         phone: values.phone ?? "",

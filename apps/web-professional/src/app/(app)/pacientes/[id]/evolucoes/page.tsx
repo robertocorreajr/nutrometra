@@ -3,8 +3,7 @@
 import { useParams } from "next/navigation"
 import { useState } from "react"
 import { LoadingState, ErrorState, EmptyState, Button } from "@nutrometra/ui"
-import { useProgressNotes, useCreateProgressNote } from "@nutrometra/api-client/hooks"
-import { useAuth } from "@nutrometra/auth"
+import { useProgressNotes, useCreateProgressNote, useProfessionalMe } from "@nutrometra/api-client/hooks"
 import { NoteForm } from "@/components/notes/note-form"
 import { NoteList } from "@/components/notes/note-list"
 import type { NoteFormValues } from "@/lib/schemas/note"
@@ -13,7 +12,7 @@ import { Plus, FileText } from "lucide-react"
 export default function EvolucoesPage() {
   const params = useParams()
   const patientId = params.id as string
-  const { user } = useAuth()
+  const { data: professional } = useProfessionalMe()
 
   const { data: notes, isLoading, isError, refetch } = useProgressNotes(patientId)
   const createNote = useCreateProgressNote(patientId)
@@ -23,7 +22,7 @@ export default function EvolucoesPage() {
   async function handleSubmit(data: NoteFormValues) {
     try {
       await createNote.mutateAsync({
-        professional_id: user?.id ?? "",
+        professional_id: professional?.id ?? "",
         title: data.title,
         content: data.content,
         visible_to_patient: data.visible_to_patient,

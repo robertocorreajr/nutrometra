@@ -1,5 +1,14 @@
 export { usePlans, useSubscription, useEntitlements } from "./billing"
 export {
+  useProfessionalMe,
+  useUpdateProfessional,
+  useAddresses,
+  useCreateAddress,
+  useUpdateAddress,
+  useServiceModes,
+  useSetServiceMode,
+} from "./professionals"
+export {
   usePatients,
   usePatient,
   useCreatePatient,
@@ -18,3 +27,74 @@ export {
   useAttachments,
   useCreateAttachment,
 } from "./clinical"
+export {
+  useMeasurements,
+  useMeasurement,
+  useCreateMeasurement,
+  usePublishMeasurement,
+} from "./bioimpedance"
+export {
+  useAISuggestions,
+  useAISuggestion,
+  useCreateAISuggestion,
+  useAcceptAISuggestion,
+  useRejectAISuggestion,
+} from "./ai"
+export {
+  useAvailabilityRules,
+  useCreateAvailabilityRule,
+  useUpdateAvailabilityRule,
+  useDeleteAvailabilityRule,
+  useAvailableSlots,
+  useBlocks,
+  useCreateBlock,
+  useDeleteBlock,
+  useAppointments,
+  useAppointment,
+  useCreateAppointment,
+  useUpdateAppointmentStatus,
+  useRescheduleAppointment,
+} from "./scheduling"
+export type { UseAppointmentsParams } from "./scheduling"
+export {
+  useFoods,
+  useFoodGroups,
+  useFood,
+  useCreateFood,
+  useUpdateFood,
+  useDeleteFood,
+} from "./catalog"
+export {
+  usePatientDiets,
+  useDiet,
+  useCreateDiet,
+  useUpdateDiet,
+  useDeleteDiet,
+  usePublishDiet,
+  useArchiveDiet,
+  useNewDietVersion,
+  useAddMeal,
+  useUpdateMeal,
+  useDeleteMeal,
+  useAddMealItem,
+  useUpdateMealItem,
+  useDeleteMealItem,
+  useAddSubstitution,
+  useDeleteSubstitution,
+} from "./diets"
+export {
+  usePatientDocuments,
+  useDocument,
+  useCreateDocument,
+  useUpdateDocument,
+  useFinalizeDocument,
+  usePublishDocument,
+  useNewDocumentVersion,
+  useDocumentVersions,
+} from "./documents"
+export {
+  useRequestExport,
+  useExports,
+  useExport,
+  downloadExport,
+} from "./exports"
