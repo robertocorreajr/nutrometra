@@ -71,4 +71,23 @@ export const api = {
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+
+  download: async (path: string, filename: string) => {
+    if (!clientConfig) throw new Error("API client not configured. Call configureApiClient() first.")
+    const headers = new Headers()
+    const token = await clientConfig.getAccessToken()
+    if (token) headers.set("Authorization", `Bearer ${token}`)
+    const tenantId = clientConfig.getTenantId()
+    if (tenantId) headers.set("X-Tenant-ID", tenantId)
+    headers.set("X-Request-ID", crypto.randomUUID())
+    const res = await fetch(`${clientConfig.baseUrl}${path}`, { headers })
+    if (!res.ok) throw new ApiError(res.status, "download_failed", "")
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  },
 }

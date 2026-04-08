@@ -1,5 +1,13 @@
 export { usePlans, useSubscription, useEntitlements } from "./billing"
-export { useProfessionalMe } from "./professionals"
+export {
+  useProfessionalMe,
+  useUpdateProfessional,
+  useAddresses,
+  useCreateAddress,
+  useUpdateAddress,
+  useServiceModes,
+  useSetServiceMode,
+} from "./professionals"
 export {
   usePatients,
   usePatient,
@@ -48,3 +56,45 @@ export {
   useRescheduleAppointment,
 } from "./scheduling"
 export type { UseAppointmentsParams } from "./scheduling"
+export {
+  useFoods,
+  useFoodGroups,
+  useFood,
+  useCreateFood,
+  useUpdateFood,
+  useDeleteFood,
+} from "./catalog"
+export {
+  usePatientDiets,
+  useDiet,
+  useCreateDiet,
+  useUpdateDiet,
+  useDeleteDiet,
+  usePublishDiet,
+  useArchiveDiet,
+  useNewDietVersion,
+  useAddMeal,
+  useUpdateMeal,
+  useDeleteMeal,
+  useAddMealItem,
+  useUpdateMealItem,
+  useDeleteMealItem,
+  useAddSubstitution,
+  useDeleteSubstitution,
+} from "./diets"
+export {
+  usePatientDocuments,
+  useDocument,
+  useCreateDocument,
+  useUpdateDocument,
+  useFinalizeDocument,
+  usePublishDocument,
+  useNewDocumentVersion,
+  useDocumentVersions,
+} from "./documents"
+export {
+  useRequestExport,
+  useExports,
+  useExport,
+  downloadExport,
+} from "./exports"
