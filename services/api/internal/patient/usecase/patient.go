@@ -27,6 +27,8 @@ type PatientRepository interface {
 
 	CreateAccessLink(ctx context.Context, link *domain.PatientAccessLink) error
 
+	CreateTenantUser(ctx context.Context, tenantID, userID, invitedBy uuid.UUID) error
+
 	UpsertProfile(ctx context.Context, p *domain.PatientProfile) error
 	GetProfile(ctx context.Context, tenantID, patientID uuid.UUID) (*domain.PatientProfile, error)
 }
@@ -175,6 +177,11 @@ func (uc *Usecase) ActivatePortalAccess(ctx context.Context, code string, userID
 
 	if err := uc.repo.CreateAccessLink(ctx, link); err != nil {
 		return nil, err
+	}
+
+	// Create tenant membership so patient can access tenant-scoped routes
+	if err := uc.repo.CreateTenantUser(ctx, inv.TenantID, userID, inv.InvitedBy); err != nil {
+		return nil, fmt.Errorf("patient: create tenant membership: %w", err)
 	}
 
 	// Increment used count

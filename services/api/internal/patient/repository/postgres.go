@@ -203,6 +203,23 @@ func (r *Repository) CreateAccessLink(ctx context.Context, link *domain.PatientA
 	return nil
 }
 
+// --- Tenant Users ---
+
+// CreateTenantUser inserts a tenant_users membership entry for the patient.
+// Uses ON CONFLICT DO NOTHING for idempotency.
+func (r *Repository) CreateTenantUser(ctx context.Context, tenantID, userID, invitedBy uuid.UUID) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO tenant_users (id, tenant_id, user_id, status, invited_by_user_id)
+		 VALUES ($1, $2, $3, 'active', $4)
+		 ON CONFLICT (tenant_id, user_id) DO NOTHING`,
+		uuid.New(), tenantID, userID, invitedBy,
+	)
+	if err != nil {
+		return fmt.Errorf("patient: create_tenant_user: %w", err)
+	}
+	return nil
+}
+
 // --- Profiles ---
 
 // UpsertProfile creates or updates a patient profile.
