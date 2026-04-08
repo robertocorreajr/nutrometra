@@ -49,6 +49,7 @@ export default function PatientLayout({ children }: PatientLayoutProps) {
     { label: "Evoluções", href: `${basePath}/evolucoes` },
     { label: "Anexos", href: `${basePath}/anexos` },
     { label: "Composição Corporal", href: `${basePath}/composicao-corporal` },
+    { label: "Dietas", href: `${basePath}/dietas` },
     { label: "IA Assistiva", href: `${basePath}/ia` },
     { label: "Documentos", href: `${basePath}/documentos` },
   ]
