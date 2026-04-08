@@ -17,6 +17,7 @@ import (
 type PatientRepository interface {
 	Create(ctx context.Context, p *domain.Patient) error
 	GetByID(ctx context.Context, tenantID, id uuid.UUID) (*domain.Patient, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.Patient, error)
 	List(ctx context.Context, tenantID uuid.UUID) ([]domain.Patient, error)
 	Update(ctx context.Context, p *domain.Patient) error
 	CountByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error)
@@ -84,6 +85,11 @@ func (uc *Usecase) Create(ctx context.Context, p *domain.Patient) error {
 // GetByID returns a patient by ID.
 func (uc *Usecase) GetByID(ctx context.Context, tenantID, id uuid.UUID) (*domain.Patient, error) {
 	return uc.repo.GetByID(ctx, tenantID, id)
+}
+
+// GetByUserID returns the patient linked to a user via access links.
+func (uc *Usecase) GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.Patient, error) {
+	return uc.repo.GetByUserID(ctx, userID)
 }
 
 // List returns all patients for a tenant.

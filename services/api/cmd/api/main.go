@@ -257,8 +257,9 @@ func main() {
 		r.Get("/auth/me", identity.MeHandler)
 		r.Get("/auth/me/tenants", identity.MeTenantsHandler(tenancyRepo))
 
-		// Invite activation (auth only, no tenant required)
+		// Patient portal (auth only, no tenant required)
 		r.Post("/invites/activate", patHandler.ActivatePortalAccess)
+		r.Get("/patients/me", patHandler.GetMe)
 
 		// Tenant-scoped routes (require X-Tenant-ID header + membership)
 		r.Group(func(r chi.Router) {

@@ -203,6 +203,31 @@ func (r *Repository) CreateAccessLink(ctx context.Context, link *domain.PatientA
 	return nil
 }
 
+// GetByUserID returns the patient linked to a user via patient_access_links.
+func (r *Repository) GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.Patient, error) {
+	p := &domain.Patient{}
+	err := r.pool.QueryRow(ctx,
+		`SELECT p.id, p.tenant_id, p.professional_id, p.full_name,
+			COALESCE(p.email,''), COALESCE(p.phone,''), COALESCE(p.cpf,''),
+			p.date_of_birth, COALESCE(p.gender,''), COALESCE(p.notes,''),
+			p.active, p.created_at, p.updated_at
+		 FROM patients p
+		 JOIN patient_access_links pal ON pal.patient_id = p.id AND pal.active = true
+		 WHERE pal.user_id = $1
+		 LIMIT 1`,
+		userID,
+	).Scan(&p.ID, &p.TenantID, &p.ProfessionalID, &p.FullName,
+		&p.Email, &p.Phone, &p.CPF, &p.DateOfBirth, &p.Gender, &p.Notes,
+		&p.Active, &p.CreatedAt, &p.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrNotFound
+		}
+		return nil, fmt.Errorf("patient: get_by_user_id: %w", err)
+	}
+	return p, nil
+}
+
 // --- Tenant Users ---
 
 // CreateTenantUser inserts a tenant_users membership entry for the patient.

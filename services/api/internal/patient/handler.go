@@ -167,6 +167,26 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	server.RenderJSON(w, http.StatusOK, resp)
 }
 
+// GetMe handles GET /patients/me — resolves the authenticated user's patient record.
+func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := identitydomain.UserIDFromContext(r.Context())
+	if !ok {
+		server.RenderError(w, r, http.StatusUnauthorized, "unauthorized", "No user in context")
+		return
+	}
+
+	p, err := h.uc.GetByUserID(r.Context(), userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			server.RenderError(w, r, http.StatusNotFound, "not_found", "Patient not found")
+			return
+		}
+		server.RenderError(w, r, http.StatusInternalServerError, "get_failed", "Failed to get patient")
+		return
+	}
+	server.RenderJSON(w, http.StatusOK, toPatientResponse(p))
+}
+
 // GetByID handles GET /patients/{id}
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := identitydomain.TenantIDFromContext(r.Context())
