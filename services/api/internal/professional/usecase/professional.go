@@ -136,6 +136,20 @@ func (uc *Usecase) CreateAddress(ctx context.Context, a *domain.Address) error {
 	return uc.repo.CreateAddress(ctx, a)
 }
 
+// CreateSelf creates the professional record for the logged-in user.
+// Does not check entitlements since self-provisioning is always allowed.
+func (uc *Usecase) CreateSelf(ctx context.Context, p *domain.Professional) error {
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	p.ID = uuid.New()
+	now := time.Now().UTC()
+	p.CreatedAt = now
+	p.UpdatedAt = now
+	p.Active = true
+	return uc.repo.Create(ctx, p)
+}
+
 // ListAddresses returns addresses for a professional.
 func (uc *Usecase) ListAddresses(ctx context.Context, tenantID, professionalID uuid.UUID) ([]domain.Address, error) {
 	return uc.repo.ListAddresses(ctx, tenantID, professionalID)

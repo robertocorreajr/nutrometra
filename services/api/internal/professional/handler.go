@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"nutrometra/api/internal/professional/domain"
@@ -96,11 +97,33 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 
 	p, err := h.uc.GetByUserID(r.Context(), tenantID, userID)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			server.RenderError(w, r, http.StatusNotFound, "not_found", "No professional record for this user")
+		if !errors.Is(err, domain.ErrNotFound) {
+			server.RenderError(w, r, http.StatusInternalServerError, "get_failed", "Failed to get professional")
 			return
 		}
-		server.RenderError(w, r, http.StatusInternalServerError, "get_failed", "Failed to get professional")
+
+		// Auto-provisioning: create minimal professional record on first access
+		email, _ := identitydomain.UserEmailFromContext(r.Context())
+		fullName := email
+		if atIdx := strings.Index(email, "@"); atIdx > 0 {
+			fullName = strings.ToUpper(email[:1]) + email[1:atIdx]
+		}
+
+		newProf := &domain.Professional{
+			TenantID:           tenantID,
+			UserID:             userID,
+			FullName:           fullName,
+			RegistrationType:   "CRN",
+			RegistrationNumber: "PENDENTE",
+			RegistrationState:  "SP",
+		}
+
+		if createErr := h.uc.CreateSelf(r.Context(), newProf); createErr != nil {
+			server.RenderError(w, r, http.StatusInternalServerError, "create_failed", "Failed to auto-provision professional")
+			return
+		}
+
+		server.RenderJSON(w, http.StatusOK, toProfResponse(newProf))
 		return
 	}
 	server.RenderJSON(w, http.StatusOK, toProfResponse(p))
