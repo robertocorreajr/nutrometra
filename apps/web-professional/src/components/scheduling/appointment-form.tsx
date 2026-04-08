@@ -58,8 +58,8 @@ export function AppointmentForm({
   })
 
   // Local state for date/time decomposition
-  const dateValue = watch("date" as never) as string | undefined
-  const startTimeValue = watch("start_time" as never) as string | undefined
+  const dateValue = watch("date" as keyof AppointmentFormValues) as unknown as string | undefined
+  const startTimeValue = watch("start_time" as keyof AppointmentFormValues) as unknown as string | undefined
 
   function handleFormSubmit(data: AppointmentFormValues) {
     onSubmit(data)

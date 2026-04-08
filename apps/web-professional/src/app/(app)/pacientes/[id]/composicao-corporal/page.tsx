@@ -54,7 +54,7 @@ export default function ComposicaoCorporalPage() {
     }
 
     try {
-      await createMeasurement.mutateAsync(cleaned as Parameters<typeof createMeasurement.mutateAsync>[0])
+      await createMeasurement.mutateAsync(cleaned as unknown as Parameters<typeof createMeasurement.mutateAsync>[0])
       setShowForm(false)
     } catch {
       // Error handled by mutation

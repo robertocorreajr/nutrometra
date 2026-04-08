@@ -23,7 +23,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Pacientes", href: "/pacientes", icon: Users },
-  { label: "Agenda", href: "/agenda", icon: Calendar, disabled: true },
+  { label: "Agenda", href: "/agenda", icon: Calendar },
   { label: "Dietas", href: "/dietas", icon: UtensilsCrossed, disabled: true },
   { label: "Documentos", href: "/documentos", icon: FileText, disabled: true },
   { label: "Configurações", href: "/configuracoes", icon: Settings },

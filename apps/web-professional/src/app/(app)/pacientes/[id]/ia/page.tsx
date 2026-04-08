@@ -37,7 +37,7 @@ export default function IAPage() {
   if (isLoading) return <LoadingState lines={6} />
   if (isError) return <ErrorState message="Erro ao carregar sugestões de IA." onRetry={refetch} />
 
-  const suggestions = suggestionsData?.items ?? []
+  const suggestions = suggestionsData?.data ?? []
 
   return (
     <div className="space-y-4">
