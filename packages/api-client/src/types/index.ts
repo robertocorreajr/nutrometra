@@ -8,3 +8,13 @@ export type {
   PatientInvite,
   Gender,
 } from "./patient"
+export type {
+  Anamnesis,
+  AnamnesisStatus,
+  AnamnesisRequest,
+  ProgressNote,
+  ProgressNoteRequest,
+  AttachmentCategory,
+  ClinicalAttachment,
+  AttachmentRequest,
+} from "./clinical"
