@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, UtensilsCrossed, Activity, Calendar, User, type LucideIcon } from "lucide-react"
+import { Home, UtensilsCrossed, Activity, FileText, Calendar, User, type LucideIcon } from "lucide-react"
 import { cn } from "@nutrometra/ui"
 
 interface NavItem {
@@ -15,6 +15,7 @@ const navItems: NavItem[] = [
   { label: "Inicio", href: "/", icon: Home },
   { label: "Dietas", href: "/dietas", icon: UtensilsCrossed },
   { label: "Medidas", href: "/medidas", icon: Activity },
+  { label: "Docs", href: "/documentos", icon: FileText },
   { label: "Agenda", href: "/agenda", icon: Calendar },
   { label: "Perfil", href: "/perfil", icon: User },
 ]
