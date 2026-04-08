@@ -1,13 +1,13 @@
 "use client"
 
+import { useAuth } from "@nutrometra/auth"
 import { PageHeader, LoadingState, ErrorState, EmptyState } from "@nutrometra/ui"
 import { useMyDiets } from "@nutrometra/api-client/hooks"
 import { DietCard } from "@/components/diet/diet-card"
 
 export default function DietasPage() {
-  // TODO: patientId from session
-  const patientId = ""
-  const { data: diets, isLoading, isError, refetch } = useMyDiets(patientId)
+  const { patientId } = useAuth()
+  const { data: diets, isLoading, isError, refetch } = useMyDiets(patientId ?? "")
 
   return (
     <div className="max-w-lg mx-auto md:max-w-none">

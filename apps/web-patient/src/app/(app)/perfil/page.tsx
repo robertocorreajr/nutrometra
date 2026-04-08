@@ -7,9 +7,8 @@ import { LogOut } from "lucide-react"
 import { signOut } from "next-auth/react"
 
 export default function PerfilPage() {
-  const { user } = useAuth()
-  const patientId = ""
-  const { data: profile, isLoading, isError, refetch } = useMyProfile(patientId)
+  const { user, patientId } = useAuth()
+  const { data: profile, isLoading, isError, refetch } = useMyProfile(patientId ?? "")
 
   return (
     <div className="max-w-lg mx-auto md:max-w-none space-y-4">
