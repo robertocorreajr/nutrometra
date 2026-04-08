@@ -8,6 +8,8 @@
       "@/*": ["./src/*"],
       "@nutrometra/ui": ["../../packages/ui/src"],
       "@nutrometra/api-client": ["../../packages/api-client/src"],
+      "@nutrometra/api-client/hooks": ["../../packages/api-client/src/hooks/index.ts"],
+      "@nutrometra/api-client/types": ["../../packages/api-client/src/types/index.ts"],
       "@nutrometra/auth": ["../../packages/auth/src"]
     }
   },

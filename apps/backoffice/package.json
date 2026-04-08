@@ -16,7 +16,9 @@
     "next-auth": "^4",
     "react": "^18",
     "react-dom": "^18",
-    "@tanstack/react-query": "^5"
+    "@tanstack/react-query": "^5",
+    "lucide-react": "^0.400",
+    "date-fns": "^3"
   },
   "devDependencies": {
     "@types/node": "^20",
