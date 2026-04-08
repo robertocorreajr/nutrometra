@@ -1,3 +1,5 @@
+"use client"
+
 import { PageHeader } from "@nutrometra/ui"
 import { Settings } from "lucide-react"
 
