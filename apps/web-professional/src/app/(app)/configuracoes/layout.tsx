@@ -11,6 +11,7 @@ export default function ConfiguracoesLayout({ children }: { children: React.Reac
     { label: "Perfil", href: "/configuracoes" },
     { label: "Endereços", href: "/configuracoes/enderecos" },
     { label: "Modalidades", href: "/configuracoes/modalidades" },
+    { label: "Integrações", href: "/configuracoes/integracoes" },
   ]
 
   function getActivePath(): string {
