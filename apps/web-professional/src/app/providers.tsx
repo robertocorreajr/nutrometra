@@ -3,9 +3,9 @@
 import { SessionProvider, getSession } from "next-auth/react"
 import { ApiProvider, configureApiClient } from "@nutrometra/api-client"
 
-// Configure API client with lazy session fetching (no React context dependency)
+// Configure API client to use Next.js proxy (avoids CORS) with lazy session fetching
 configureApiClient({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080",
+  baseUrl: "/api/v1",
   getAccessToken: async () => {
     const session = await getSession()
     return (session as any)?.accessToken ?? null
