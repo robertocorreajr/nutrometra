@@ -102,3 +102,21 @@ export {
   useGoogleCalendarStatus, useGoogleCalendarAuthorize, useGoogleCalendarDisconnect,
 } from "./integrations"
 export { useRoles, useAssignRole, useRevokeRole } from "./rbac"
+export {
+  useBackofficeTenants, useBackofficeTenant, useBackofficeTenantSubscription,
+  useBackofficeOverridePlan, useBackofficeCancelSubscription, useBackofficeReactivateSubscription,
+  useBackofficeInvoices, useBackofficePayments,
+  useBackofficeOverrides, useBackofficeCreateOverride, useBackofficeUpdateOverride, useBackofficeDeleteOverride,
+  useBackofficeAuditLog,
+} from "./backoffice"
+export {
+  useActivateInvite,
+  useMyAppointments,
+  useMyDiets,
+  useMyDiet,
+  useMyDocuments,
+  useMyDocument,
+  useMyMeasurements,
+  useMyProfile,
+} from "./patient-portal"
+export type { MyAppointmentsParams } from "./patient-portal"

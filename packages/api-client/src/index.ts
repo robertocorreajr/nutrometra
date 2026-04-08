@@ -91,3 +91,15 @@ export type {
 } from "./types/export"
 export type { GoogleCalendarStatus, GoogleAuthorizeResponse } from "./types/integration"
 export type { Role, AssignRoleRequest } from "./types/rbac"
+export type {
+  BackofficeTenant,
+  FeatureOverride,
+  CreateOverrideRequest,
+  UpdateOverrideRequest,
+  OverridePlanRequest,
+  AuditLogEntry,
+} from "./types/backoffice"
+export type {
+  ActivateInviteRequest,
+  ActivateInviteResponse,
+} from "./types/patient-portal"
