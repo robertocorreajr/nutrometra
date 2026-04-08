@@ -3,14 +3,15 @@
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { ExternalLink } from "lucide-react"
-import { LoadingState, EmptyState } from "@nutrometra/ui"
+import { LoadingState, ErrorState, EmptyState } from "@nutrometra/ui"
 import { useInvoices } from "@nutrometra/api-client/hooks"
 import { invoiceStatusLabels, invoiceStatusColors, formatCurrency } from "@/lib/schemas/billing"
 
 export default function FaturasPage() {
-  const { data: invoices, isLoading } = useInvoices()
+  const { data: invoices, isLoading, isError, refetch } = useInvoices()
 
   if (isLoading) return <LoadingState lines={4} />
+  if (isError) return <ErrorState message="Não foi possível carregar as faturas." onRetry={refetch} />
 
   const list = invoices ?? []
   if (list.length === 0) {

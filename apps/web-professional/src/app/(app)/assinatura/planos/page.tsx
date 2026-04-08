@@ -1,12 +1,13 @@
 "use client"
 
 import { LoadingState, ErrorState } from "@nutrometra/ui"
-import { usePlans, useSubscription, useCheckout, useChangePlan } from "@nutrometra/api-client/hooks"
+import { usePlans, useSubscription, useProfessionalMe, useCheckout, useChangePlan } from "@nutrometra/api-client/hooks"
 import { PlanCard } from "@/components/billing/plan-card"
 
 export default function PlanosPage() {
   const { data: plans, isLoading, isError, refetch } = usePlans()
   const { data: subscription } = useSubscription()
+  const { data: professional } = useProfessionalMe()
   const checkout = useCheckout()
   const changePlan = useChangePlan()
 
@@ -20,7 +21,11 @@ export default function PlanosPage() {
     if (hasSubscription) {
       changePlan.mutate({ plan_id: planId })
     } else {
-      checkout.mutate({ plan_id: planId, email: "", name: "" })
+      checkout.mutate({
+        plan_id: planId,
+        email: professional?.phone ?? "",
+        name: professional?.full_name ?? "",
+      })
     }
   }
 

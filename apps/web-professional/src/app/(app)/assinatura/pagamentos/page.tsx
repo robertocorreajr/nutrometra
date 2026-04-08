@@ -2,14 +2,15 @@
 
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { LoadingState, EmptyState } from "@nutrometra/ui"
+import { LoadingState, ErrorState, EmptyState } from "@nutrometra/ui"
 import { usePayments } from "@nutrometra/api-client/hooks"
 import { paymentStatusLabels, paymentStatusColors, formatCurrency } from "@/lib/schemas/billing"
 
 export default function PagamentosPage() {
-  const { data: payments, isLoading } = usePayments()
+  const { data: payments, isLoading, isError, refetch } = usePayments()
 
   if (isLoading) return <LoadingState lines={4} />
+  if (isError) return <ErrorState message="Não foi possível carregar os pagamentos." onRetry={refetch} />
 
   const list = payments ?? []
   if (list.length === 0) {

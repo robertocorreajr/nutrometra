@@ -1,6 +1,9 @@
 export type { UUID, ErrorResponse, PaginatedResponse } from "./common"
 export type { User, TenantMembership } from "./auth"
-export type { Plan, Subscription, Entitlement } from "./billing"
+export type {
+  Plan, Subscription, Entitlement,
+  InvoiceStatus, Invoice, PaymentStatus, Payment, CheckoutRequest, ChangePlanRequest,
+} from "./billing"
 export type {
   Patient,
   CreatePatientRequest,
@@ -84,13 +87,5 @@ export type {
   ExportedFile,
   RequestExportRequest,
 } from "./export"
-export type {
-  InvoiceStatus,
-  Invoice,
-  PaymentStatus,
-  Payment,
-  CheckoutRequest,
-  ChangePlanRequest,
-} from "./billing"
 export type { GoogleCalendarStatus, GoogleAuthorizeResponse } from "./integration"
 export type { Role, AssignRoleRequest } from "./rbac"

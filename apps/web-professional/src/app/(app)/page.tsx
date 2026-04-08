@@ -21,17 +21,19 @@ export default function DashboardPage() {
   const todayTo = useMemo(() => endOfDay(now).toISOString(), [now])
   const weekTo = useMemo(() => endOfDay(addDays(now, 6)).toISOString(), [now])
 
-  const { data: todayAppointments } = useAppointments({
-    professional_id: professionalId,
-    from: todayFrom,
-    to: todayTo,
-  })
+  const hasProfessional = !!professionalId
 
-  const { data: weekAppointments } = useAppointments({
-    professional_id: professionalId,
-    from: todayFrom,
-    to: weekTo,
-  })
+  const { data: todayAppointments } = useAppointments(
+    hasProfessional
+      ? { professional_id: professionalId, from: todayFrom, to: todayTo }
+      : { professional_id: "__skip__" },
+  )
+
+  const { data: weekAppointments } = useAppointments(
+    hasProfessional
+      ? { professional_id: professionalId, from: todayFrom, to: weekTo }
+      : { professional_id: "__skip__" },
+  )
 
   const appointmentsToday = useMemo(
     () =>
