@@ -1,4 +1,5 @@
 export { usePlans, useSubscription, useEntitlements } from "./billing"
+export { useProfessionalMe } from "./professionals"
 export {
   usePatients,
   usePatient,

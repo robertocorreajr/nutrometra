@@ -80,6 +80,32 @@ func toProfResponse(p *domain.Professional) professionalResponse {
 	}
 }
 
+// GetMe handles GET /professionals/me — returns the professional for the authenticated user.
+func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := identitydomain.TenantIDFromContext(r.Context())
+	if !ok {
+		server.RenderError(w, r, http.StatusBadRequest, "missing_tenant", "No tenant in context")
+		return
+	}
+
+	userID, ok := identitydomain.UserIDFromContext(r.Context())
+	if !ok {
+		server.RenderError(w, r, http.StatusUnauthorized, "unauthenticated", "Not authenticated")
+		return
+	}
+
+	p, err := h.uc.GetByUserID(r.Context(), tenantID, userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			server.RenderError(w, r, http.StatusNotFound, "not_found", "No professional record for this user")
+			return
+		}
+		server.RenderError(w, r, http.StatusInternalServerError, "get_failed", "Failed to get professional")
+		return
+	}
+	server.RenderJSON(w, http.StatusOK, toProfResponse(p))
+}
+
 // Create handles POST /professionals
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := identitydomain.TenantIDFromContext(r.Context())

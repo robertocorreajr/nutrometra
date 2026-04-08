@@ -14,6 +14,7 @@ import (
 type ProfessionalRepository interface {
 	Create(ctx context.Context, p *domain.Professional) error
 	GetByID(ctx context.Context, tenantID, id uuid.UUID) (*domain.Professional, error)
+	GetByUserID(ctx context.Context, tenantID, userID uuid.UUID) (*domain.Professional, error)
 	List(ctx context.Context, tenantID uuid.UUID) ([]domain.Professional, error)
 	Update(ctx context.Context, p *domain.Professional) error
 	CountByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error)
@@ -79,6 +80,11 @@ func (uc *Usecase) Create(ctx context.Context, p *domain.Professional) error {
 // GetByID returns a professional by ID.
 func (uc *Usecase) GetByID(ctx context.Context, tenantID, id uuid.UUID) (*domain.Professional, error) {
 	return uc.repo.GetByID(ctx, tenantID, id)
+}
+
+// GetByUserID returns the professional linked to a user within a tenant.
+func (uc *Usecase) GetByUserID(ctx context.Context, tenantID, userID uuid.UUID) (*domain.Professional, error) {
+	return uc.repo.GetByUserID(ctx, tenantID, userID)
 }
 
 // List returns all professionals for a tenant.

@@ -69,6 +69,27 @@ func (r *Repository) GetByID(ctx context.Context, tenantID, id uuid.UUID) (*doma
 	return p, nil
 }
 
+// GetByUserID returns the professional linked to a user within a tenant.
+func (r *Repository) GetByUserID(ctx context.Context, tenantID, userID uuid.UUID) (*domain.Professional, error) {
+	p := &domain.Professional{}
+	err := r.pool.QueryRow(ctx,
+		`SELECT id, tenant_id, user_id, full_name, registration_type, registration_number,
+			COALESCE(registration_state,''), COALESCE(specialty,''), COALESCE(bio,''),
+			COALESCE(phone,''), COALESCE(avatar_url,''), active, created_at, updated_at
+		 FROM professionals WHERE tenant_id = $1 AND user_id = $2`,
+		tenantID, userID,
+	).Scan(&p.ID, &p.TenantID, &p.UserID, &p.FullName, &p.RegistrationType, &p.RegistrationNumber,
+		&p.RegistrationState, &p.Specialty, &p.Bio, &p.Phone, &p.AvatarURL, &p.Active,
+		&p.CreatedAt, &p.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrNotFound
+		}
+		return nil, fmt.Errorf("professional: get_by_user_id: %w", err)
+	}
+	return p, nil
+}
+
 // List returns all professionals for a tenant.
 func (r *Repository) List(ctx context.Context, tenantID uuid.UUID) ([]domain.Professional, error) {
 	rows, err := r.pool.Query(ctx,

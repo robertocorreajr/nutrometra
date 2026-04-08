@@ -95,6 +95,31 @@ services:
       zitadel:
         condition: service_healthy
 
+  web-professional:
+    build:
+      context: ..
+      dockerfile: apps/web-professional/Dockerfile.dev
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:8081
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      ZITADEL_ISSUER: ${ZITADEL_ISSUER}
+      ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID}
+      ZITADEL_CLIENT_SECRET: ${ZITADEL_CLIENT_SECRET}
+    volumes:
+      - ../apps/web-professional/src:/app/apps/web-professional/src
+      - ../apps/web-professional/public:/app/apps/web-professional/public
+      - ../packages/ui/src:/app/packages/ui/src
+      - ../packages/api-client/src:/app/packages/api-client/src
+      - ../packages/auth/src:/app/packages/auth/src
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_started
+      zitadel:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:

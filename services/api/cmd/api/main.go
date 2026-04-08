@@ -290,6 +290,7 @@ func main() {
 			r.Route("/professionals", func(r chi.Router) {
 				r.With(rbac.RequirePermission("patients:read", rbacRepo)).Get("/", profHandler.List)
 				r.With(rbac.RequirePermission("tenant:manage", rbacRepo)).Post("/", profHandler.Create)
+				r.With(rbac.RequirePermission("patients:read", rbacRepo)).Get("/me", profHandler.GetMe)
 				r.Route("/{id}", func(r chi.Router) {
 					r.With(rbac.RequirePermission("patients:read", rbacRepo)).Get("/", profHandler.GetByID)
 					r.With(rbac.RequirePermission("tenant:manage", rbacRepo)).Put("/", profHandler.Update)
