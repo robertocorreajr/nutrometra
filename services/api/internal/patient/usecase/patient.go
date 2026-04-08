@@ -17,6 +17,7 @@ import (
 type PatientRepository interface {
 	Create(ctx context.Context, p *domain.Patient) error
 	GetByID(ctx context.Context, tenantID, id uuid.UUID) (*domain.Patient, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.Patient, error)
 	List(ctx context.Context, tenantID uuid.UUID) ([]domain.Patient, error)
 	Update(ctx context.Context, p *domain.Patient) error
 	CountByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error)
@@ -26,6 +27,8 @@ type PatientRepository interface {
 	IncrementInviteUsedCount(ctx context.Context, id uuid.UUID) error
 
 	CreateAccessLink(ctx context.Context, link *domain.PatientAccessLink) error
+
+	CreateTenantUser(ctx context.Context, tenantID, userID, invitedBy uuid.UUID) error
 
 	UpsertProfile(ctx context.Context, p *domain.PatientProfile) error
 	GetProfile(ctx context.Context, tenantID, patientID uuid.UUID) (*domain.PatientProfile, error)
@@ -82,6 +85,11 @@ func (uc *Usecase) Create(ctx context.Context, p *domain.Patient) error {
 // GetByID returns a patient by ID.
 func (uc *Usecase) GetByID(ctx context.Context, tenantID, id uuid.UUID) (*domain.Patient, error) {
 	return uc.repo.GetByID(ctx, tenantID, id)
+}
+
+// GetByUserID returns the patient linked to a user via access links.
+func (uc *Usecase) GetByUserID(ctx context.Context, userID uuid.UUID) (*domain.Patient, error) {
+	return uc.repo.GetByUserID(ctx, userID)
 }
 
 // List returns all patients for a tenant.
@@ -175,6 +183,11 @@ func (uc *Usecase) ActivatePortalAccess(ctx context.Context, code string, userID
 
 	if err := uc.repo.CreateAccessLink(ctx, link); err != nil {
 		return nil, err
+	}
+
+	// Create tenant membership so patient can access tenant-scoped routes
+	if err := uc.repo.CreateTenantUser(ctx, inv.TenantID, userID, inv.InvitedBy); err != nil {
+		return nil, fmt.Errorf("patient: create tenant membership: %w", err)
 	}
 
 	// Increment used count

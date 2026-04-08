@@ -10,6 +10,7 @@ declare module "next-auth" {
     user: DefaultSession["user"] & { id: string }
     accessToken?: string
     tenantId?: string
+    patientId?: string
     roles?: string[]
   }
 }
@@ -21,6 +22,7 @@ declare module "next-auth/jwt" {
     expiresAt?: number
     userId?: string
     tenantId?: string
+    patientId?: string
     roles?: string[]
   }
 }

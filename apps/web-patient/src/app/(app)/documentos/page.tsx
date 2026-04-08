@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useAuth } from "@nutrometra/auth"
 import { PageHeader, Card, CardContent, LoadingState, ErrorState, EmptyState } from "@nutrometra/ui"
 import { useMyDocuments } from "@nutrometra/api-client/hooks"
 import { format, parseISO } from "date-fns"
@@ -13,8 +14,8 @@ const typeLabels: Record<string, string> = {
 }
 
 export default function DocumentosPage() {
-  const patientId = ""
-  const { data: documents, isLoading, isError, refetch } = useMyDocuments(patientId)
+  const { patientId } = useAuth()
+  const { data: documents, isLoading, isError, refetch } = useMyDocuments(patientId ?? "")
 
   return (
     <div className="max-w-lg mx-auto md:max-w-none">

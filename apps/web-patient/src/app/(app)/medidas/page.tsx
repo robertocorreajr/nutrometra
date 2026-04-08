@@ -1,13 +1,14 @@
 "use client"
 
+import { useAuth } from "@nutrometra/auth"
 import { PageHeader, LoadingState, ErrorState, EmptyState } from "@nutrometra/ui"
 import { useMyMeasurements } from "@nutrometra/api-client/hooks"
 import { LatestMeasurement } from "@/components/measurements/latest-measurement"
 import { MeasurementHistory } from "@/components/measurements/measurement-history"
 
 export default function MedidasPage() {
-  const patientId = ""
-  const { data: measurements, isLoading, isError, refetch } = useMyMeasurements(patientId)
+  const { patientId } = useAuth()
+  const { data: measurements, isLoading, isError, refetch } = useMyMeasurements(patientId ?? "")
 
   return (
     <div className="max-w-lg mx-auto md:max-w-none space-y-4">

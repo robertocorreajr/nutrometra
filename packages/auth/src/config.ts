@@ -57,12 +57,26 @@ export function createAuthOptions(overrides?: Partial<NextAuthOptions>): NextAut
           } catch {
             // API may not be available — tenant will be resolved later
           }
+
+          // Resolve patientId (only exists for patient portal users)
+          try {
+            const patientRes = await fetch(`${apiUrl}/patients/me`, {
+              headers: { Authorization: `Bearer ${account.access_token}` },
+            })
+            if (patientRes.ok) {
+              const patient = await patientRes.json()
+              token.patientId = patient.id
+            }
+          } catch {
+            // Patient may not exist — professional users won't have one
+          }
         }
         return token
       },
       async session({ session, token }) {
         session.accessToken = token.accessToken as string | undefined
         session.tenantId = token.tenantId as string | undefined
+        session.patientId = token.patientId as string | undefined
         session.roles = token.roles as string[] | undefined
         return session
       },
