@@ -8,6 +8,7 @@ export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 export { Skeleton } from "./components/skeleton"
 export { DataTable, type Column } from "./components/data-table"
 export { TabNav, type Tab } from "./components/tab-nav"
+export { FormWizard, type WizardStep } from "./components/form-wizard"
 
 // Layouts
 export { AppShell } from "./layouts/app-shell"
