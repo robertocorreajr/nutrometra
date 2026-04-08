@@ -9,13 +9,14 @@ export function createAuthOptions(overrides?: Partial<NextAuthOptions>): NextAut
         type: "oauth",
         wellKnown: `${process.env.ZITADEL_ISSUER}/.well-known/openid-configuration`,
         clientId: process.env.ZITADEL_CLIENT_ID,
-        clientSecret: process.env.ZITADEL_CLIENT_SECRET,
+        clientSecret: process.env.ZITADEL_CLIENT_SECRET || "",
         authorization: {
           params: {
             scope: "openid profile email",
           },
         },
         idToken: true,
+        checks: ["pkce", "state"],
         profile(profile) {
           return {
             id: profile.sub,
