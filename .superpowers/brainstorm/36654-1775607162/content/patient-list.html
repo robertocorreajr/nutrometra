@@ -1,0 +1,109 @@
+<h2>Lista de Pacientes</h2>
+<p class="subtitle">Como os pacientes devem ser exibidos na listagem principal?</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">A. Tabela com colunas</div>
+    <div class="mockup-body" style="padding:0;">
+      <!-- Search bar -->
+      <div style="padding:10px;border-bottom:1px solid #333;display:flex;gap:8px;">
+        <input class="mock-input" placeholder="Buscar paciente..." style="flex:1;font-size:10px;padding:6px 8px;">
+        <button class="mock-button" style="font-size:10px;padding:6px 12px;">+ Novo</button>
+      </div>
+      <!-- Table header -->
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:6px 10px;font-size:9px;color:#888;border-bottom:1px solid #333;">
+        <span>Nome</span><span>Status</span><span>Ultima consulta</span><span>Plano ativo</span>
+      </div>
+      <!-- Rows -->
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:8px 10px;font-size:10px;color:#ccc;border-bottom:1px solid #222;align-items:center;">
+        <span style="display:flex;align-items:center;gap:6px;"><div style="width:24px;height:24px;background:#e94560;border-radius:50%;font-size:8px;display:flex;align-items:center;justify-content:center;color:white;">MC</div>Maria Costa</span>
+        <span><span style="background:#4ecca3;color:#000;padding:2px 6px;border-radius:10px;font-size:8px;">Ativo</span></span>
+        <span style="font-size:9px;color:#888;">02/04/2026</span>
+        <span style="font-size:9px;color:#888;">Emagrecimento</span>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:8px 10px;font-size:10px;color:#ccc;border-bottom:1px solid #222;align-items:center;">
+        <span style="display:flex;align-items:center;gap:6px;"><div style="width:24px;height:24px;background:#0f3460;border-radius:50%;font-size:8px;display:flex;align-items:center;justify-content:center;color:white;">JS</div>Joao Silva</span>
+        <span><span style="background:#4ecca3;color:#000;padding:2px 6px;border-radius:10px;font-size:8px;">Ativo</span></span>
+        <span style="font-size:9px;color:#888;">28/03/2026</span>
+        <span style="font-size:9px;color:#888;">Diabetes</span>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:8px 10px;font-size:10px;color:#ccc;border-bottom:1px solid #222;align-items:center;">
+        <span style="display:flex;align-items:center;gap:6px;"><div style="width:24px;height:24px;background:#f0a500;border-radius:50%;font-size:8px;display:flex;align-items:center;justify-content:center;color:#000;">AL</div>Ana Lima</span>
+        <span><span style="background:#f0a500;color:#000;padding:2px 6px;border-radius:10px;font-size:8px;">Pendente</span></span>
+        <span style="font-size:9px;color:#888;">—</span>
+        <span style="font-size:9px;color:#888;">—</span>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:8px 10px;font-size:10px;color:#ccc;align-items:center;">
+        <span style="display:flex;align-items:center;gap:6px;"><div style="width:24px;height:24px;background:#0f3460;border-radius:50%;font-size:8px;display:flex;align-items:center;justify-content:center;color:white;">PO</div>Pedro Oliveira</span>
+        <span><span style="background:#555;color:#ccc;padding:2px 6px;border-radius:10px;font-size:8px;">Inativo</span></span>
+        <span style="font-size:9px;color:#888;">15/01/2026</span>
+        <span style="font-size:9px;color:#888;">Esportivo</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">B. Cards com resumo</div>
+    <div class="mockup-body">
+      <!-- Search bar -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input class="mock-input" placeholder="Buscar paciente..." style="flex:1;font-size:10px;padding:6px 8px;">
+        <button class="mock-button" style="font-size:10px;padding:6px 12px;">+ Novo</button>
+      </div>
+      <!-- Cards -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="background:#16213e;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;border-left:3px solid #4ecca3;">
+          <div style="width:36px;height:36px;background:#e94560;border-radius:50%;font-size:10px;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0;">MC</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;color:#eee;font-weight:600;">Maria Costa</div>
+            <div style="font-size:9px;color:#888;margin-top:2px;">Emagrecimento · Ultima: 02/04</div>
+          </div>
+          <span style="background:#4ecca3;color:#000;padding:2px 6px;border-radius:10px;font-size:8px;">Ativo</span>
+        </div>
+        <div style="background:#16213e;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;border-left:3px solid #4ecca3;">
+          <div style="width:36px;height:36px;background:#0f3460;border-radius:50%;font-size:10px;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0;">JS</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;color:#eee;font-weight:600;">Joao Silva</div>
+            <div style="font-size:9px;color:#888;margin-top:2px;">Diabetes · Ultima: 28/03</div>
+          </div>
+          <span style="background:#4ecca3;color:#000;padding:2px 6px;border-radius:10px;font-size:8px;">Ativo</span>
+        </div>
+        <div style="background:#16213e;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;border-left:3px solid #f0a500;">
+          <div style="width:36px;height:36px;background:#f0a500;border-radius:50%;font-size:10px;display:flex;align-items:center;justify-content:center;color:#000;flex-shrink:0;">AL</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;color:#eee;font-weight:600;">Ana Lima</div>
+            <div style="font-size:9px;color:#888;margin-top:2px;">Convite pendente</div>
+          </div>
+          <span style="background:#f0a500;color:#000;padding:2px 6px;border-radius:10px;font-size:8px;">Pendente</span>
+        </div>
+        <div style="background:#16213e;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;border-left:3px solid #555;">
+          <div style="width:36px;height:36px;background:#0f3460;border-radius:50%;font-size:10px;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0;">PO</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;color:#eee;font-weight:600;">Pedro Oliveira</div>
+            <div style="font-size:9px;color:#888;margin-top:2px;">Esportivo · Ultima: 15/01</div>
+          </div>
+          <span style="background:#555;color:#ccc;padding:2px 6px;border-radius:10px;font-size:8px;">Inativo</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:16px;">
+  <div class="options">
+    <div class="option" data-choice="table" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>Tabela</h3>
+        <p>Mais informacao visivel, ordena por coluna. Melhor para desktop com muitos pacientes. No mobile vira cards automaticamente.</p>
+      </div>
+    </div>
+    <div class="option" data-choice="cards" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>Cards</h3>
+        <p>Visual limpo, funciona igual desktop e mobile. Menos informacao por item mas mais escanavel. Melhor para ate ~100 pacientes.</p>
+      </div>
+    </div>
+  </div>
+</div>
