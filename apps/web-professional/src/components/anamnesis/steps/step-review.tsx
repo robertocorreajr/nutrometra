@@ -1,25 +1,25 @@
-import type { UseFormGetValues } from "react-hook-form"
+import type { UseFormGetValues, UseFormRegister } from "react-hook-form"
 import type { AnamnesisFormValues } from "@/lib/schemas/anamnesis"
 
 interface Props {
   getValues: UseFormGetValues<AnamnesisFormValues>
-  register: any
+  register: UseFormRegister<AnamnesisFormValues>
   disabled?: boolean
 }
 
 const fieldLabels: Record<keyof AnamnesisFormValues, string> = {
   chief_complaint: "Queixa Principal",
-  history_present_illness: "Historia da Doenca Atual",
+  history_present_illness: "História da Doença Atual",
   past_medical_history: "Antecedentes Pessoais",
-  family_history: "Historico Familiar",
-  social_history: "Historico Social",
-  dietary_history: "Historico Alimentar",
-  physical_activity: "Atividade Fisica",
-  sleep_pattern: "Padrao de Sono",
-  bowel_habits: "Habito Intestinal",
-  water_intake: "Ingestao Hidrica",
+  family_history: "Histórico Familiar",
+  social_history: "Histórico Social",
+  dietary_history: "Histórico Alimentar",
+  physical_activity: "Atividade Física",
+  sleep_pattern: "Padrão de Sono",
+  bowel_habits: "Hábito Intestinal",
+  water_intake: "Ingestão Hídrica",
   supplements: "Suplementos e Alergias",
-  observations: "Observacoes Gerais",
+  observations: "Observações Gerais",
 }
 
 export function StepReview({ getValues, register, disabled }: Props) {
@@ -45,8 +45,8 @@ export function StepReview({ getValues, register, disabled }: Props) {
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="observations" className="text-sm font-medium">Observacoes Gerais</label>
-        <textarea id="observations" {...register("observations")} disabled={disabled} rows={4} placeholder="Observacoes adicionais, impressao clinica, plano terapeutico inicial..." className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
+        <label htmlFor="observations" className="text-sm font-medium">Observações Gerais</label>
+        <textarea id="observations" {...register("observations")} disabled={disabled} rows={4} placeholder="Observações adicionais, impressão clínica, plano terapêutico inicial..." className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />
       </div>
 
       {filledFields.length > 0 && (

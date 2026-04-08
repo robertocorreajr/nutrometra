@@ -42,7 +42,7 @@ export function createAuthOptions(overrides?: Partial<NextAuthOptions>): NextAut
       },
     },
     pages: {
-      signIn: "/auth/signin",
+      signIn: "/signin",
     },
     session: {
       strategy: "jwt",

@@ -20,7 +20,7 @@ export function Header() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+          onClick={() => signOut({ callbackUrl: "/signin" })}
           aria-label="Sair"
         >
           <LogOut className="h-4 w-4" />

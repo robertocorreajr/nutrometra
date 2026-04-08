@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { FormWizard, type WizardStep, Button } from "@nutrometra/ui"
@@ -11,6 +11,7 @@ import {
 } from "@nutrometra/api-client/hooks"
 import type { Anamnesis, AnamnesisRequest } from "@nutrometra/api-client"
 import { useAuth } from "@nutrometra/auth"
+import { api } from "@nutrometra/api-client"
 import { anamnesisSchema, type AnamnesisFormValues } from "@/lib/schemas/anamnesis"
 import { StepClinicalData } from "./steps/step-clinical-data"
 import { StepHistory } from "./steps/step-history"
@@ -19,11 +20,11 @@ import { StepAllergies } from "./steps/step-allergies"
 import { StepReview } from "./steps/step-review"
 
 const wizardSteps: WizardStep[] = [
-  { title: "Dados Clinicos", description: "Queixa principal e motivo da consulta" },
-  { title: "Historico", description: "Historico medico pessoal e familiar" },
-  { title: "Habitos", description: "Habitos alimentares, sono, atividade fisica e intestino" },
-  { title: "Alergias", description: "Suplementos, alergias e intolerancias" },
-  { title: "Revisao", description: "Revise e finalize a anamnese" },
+  { title: "Dados Clínicos", description: "Queixa principal e motivo da consulta" },
+  { title: "Histórico", description: "Histórico médico pessoal e familiar" },
+  { title: "Hábitos", description: "Hábitos alimentares, sono, atividade física e intestino" },
+  { title: "Alergias", description: "Suplementos, alergias e intolerâncias" },
+  { title: "Revisão", description: "Revise e finalize a anamnese" },
 ]
 
 interface AnamnesisWizardProps {
@@ -63,6 +64,12 @@ export function AnamnesisWizard({ patientId, existing, onComplete }: AnamnesisWi
       : undefined,
   })
 
+  // Use ref to avoid re-subscribing watch on every render
+  const updateMutateRef = useRef(updateAnamnesis.mutate)
+  useEffect(() => {
+    updateMutateRef.current = updateAnamnesis.mutate
+  }, [updateAnamnesis.mutate])
+
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -73,7 +80,7 @@ export function AnamnesisWizard({ patientId, existing, onComplete }: AnamnesisWi
       autosaveTimer.current = setTimeout(() => {
         const values = getValues()
         const payload = buildPayload(values)
-        updateAnamnesis.mutate(payload)
+        updateMutateRef.current(payload)
       }, 2000)
     })
 
@@ -81,7 +88,7 @@ export function AnamnesisWizard({ patientId, existing, onComplete }: AnamnesisWi
       subscription.unsubscribe()
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
     }
-  }, [anamnesisId, isFinalized, watch, getValues, updateAnamnesis])
+  }, [anamnesisId, isFinalized, watch, getValues])
 
   function buildPayload(values: AnamnesisFormValues): AnamnesisRequest {
     return {
@@ -108,9 +115,11 @@ export function AnamnesisWizard({ patientId, existing, onComplete }: AnamnesisWi
 
     try {
       if (!anamnesisId) {
+        // Create then finalize using the created ID directly
         const created = await createAnamnesis.mutateAsync(payload)
         setAnamnesisId(created.id)
-        await finalizeAnamnesis.mutateAsync()
+        // Call finalize directly with the new ID to avoid stale hook closure
+        await api.post<void>(`/anamneses/${created.id}/finalize`)
       } else {
         await updateAnamnesis.mutateAsync(payload)
         await finalizeAnamnesis.mutateAsync()
@@ -138,6 +147,7 @@ export function AnamnesisWizard({ patientId, existing, onComplete }: AnamnesisWi
   }
 
   const isPending = createAnamnesis.isPending || updateAnamnesis.isPending || finalizeAnamnesis.isPending
+  const hasError = createAnamnesis.isError || updateAnamnesis.isError || finalizeAnamnesis.isError
 
   return (
     <div>
@@ -146,6 +156,12 @@ export function AnamnesisWizard({ patientId, existing, onComplete }: AnamnesisWi
           <span className="h-2 w-2 rounded-full bg-green-400" />
           {updateAnamnesis.isPending ? "Salvando..." : "Rascunho salvo automaticamente"}
         </div>
+      )}
+
+      {hasError && (
+        <p className="text-sm text-destructive mb-4">
+          Erro ao salvar anamnese. Verifique os dados e tente novamente.
+        </p>
       )}
 
       <FormWizard
