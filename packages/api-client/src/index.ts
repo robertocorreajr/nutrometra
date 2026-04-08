@@ -10,7 +10,15 @@ export type {
   PatientInvite,
   Gender,
 } from "./types/patient"
-export type { Professional } from "./types/professional"
+export type {
+  Professional,
+  UpdateProfessionalRequest,
+  ProfessionalAddress,
+  CreateAddressRequest,
+  ServiceModeType,
+  ProfessionalServiceMode,
+  SetServiceModeRequest,
+} from "./types/professional"
 export type {
   Anamnesis,
   AnamnesisStatus,
@@ -46,3 +54,35 @@ export type {
   UpdateStatusRequest,
   RescheduleRequest,
 } from "./types/scheduling"
+export type {
+  FoodSource,
+  NutritionFacts,
+  HouseholdMeasure,
+  FoodItem,
+  CreateFoodItemRequest,
+} from "./types/catalog"
+export type {
+  DietStatus,
+  DietSubstitution,
+  DietMealItem,
+  DietMeal,
+  Diet,
+  CreateDietRequest,
+  UpdateDietRequest,
+  CreateMealRequest,
+  CreateMealItemRequest,
+  CreateSubstitutionRequest,
+} from "./types/diet"
+export type {
+  DocumentType,
+  DocumentStatus,
+  ClinicalDocument,
+  CreateDocumentRequest,
+  UpdateDocumentRequest,
+} from "./types/document"
+export type {
+  ExportStatus,
+  ExportType,
+  ExportedFile,
+  RequestExportRequest,
+} from "./types/export"
