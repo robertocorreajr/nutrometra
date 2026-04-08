@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# DEV ONLY — Sets up the Zitadel OIDC application for local development.
+# DEV ONLY — Sets up Zitadel OIDC applications for local development.
+# Creates 3 apps: web-professional (3000), web-patient (3001), backoffice (3002).
 # Idempotent: safe to run multiple times.
 # Requires: Docker stack running (make dev-detached)
 # Usage: ./infra/scripts/setup-zitadel.sh
@@ -9,7 +10,6 @@ ZITADEL_HOST="http://localhost:8080"
 ZITADEL_HEADER="Host: zitadel:8080"
 ENV_FILE=".env"
 PROJECT_NAME="Nutrometra API"
-APP_NAME="Nutrometra Web"
 
 # --- 1. Get PAT from Zitadel container ---
 echo "Extracting PAT from Zitadel container..."
@@ -53,12 +53,21 @@ else
   echo "Project created: ${PROJECT_ID}"
 fi
 
-# --- 3. Find or create OIDC application ---
-echo "Looking for app '${APP_NAME}'..."
-CLIENT_ID=$(curl -s "${ZITADEL_HOST}/management/v1/projects/${PROJECT_ID}/apps/_search" \
-  -H "${ZITADEL_HEADER}" -H "${AUTH}" -H "Content-Type: application/json" \
-  -d "{\"queries\":[{\"nameQuery\":{\"name\":\"${APP_NAME}\",\"method\":\"TEXT_QUERY_METHOD_EQUALS\"}}]}" \
-  | python3 -c "
+# --- 3. Helper: find or create OIDC app ---
+# Usage: create_oidc_app "App Name" "http://localhost:PORT" "ENV_VAR_NAME"
+create_oidc_app() {
+  local app_name="$1"
+  local base_url="$2"
+  local env_var="$3"
+
+  echo ""
+  echo "--- Setting up '${app_name}' (${base_url}) ---"
+
+  local client_id
+  client_id=$(curl -s "${ZITADEL_HOST}/management/v1/projects/${PROJECT_ID}/apps/_search" \
+    -H "${ZITADEL_HEADER}" -H "${AUTH}" -H "Content-Type: application/json" \
+    -d "{\"queries\":[{\"nameQuery\":{\"name\":\"${app_name}\",\"method\":\"TEXT_QUERY_METHOD_EQUALS\"}}]}" \
+    | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 apps = data.get('result', [])
@@ -70,44 +79,50 @@ for app in apps:
         break
 " 2>/dev/null)
 
-if [ -n "$CLIENT_ID" ]; then
-  echo "App already exists. Client ID: ${CLIENT_ID}"
-else
-  echo "Creating OIDC application '${APP_NAME}'..."
-  CLIENT_ID=$(curl -s -X POST "${ZITADEL_HOST}/management/v1/projects/${PROJECT_ID}/apps/oidc" \
-    -H "${ZITADEL_HEADER}" -H "${AUTH}" -H "Content-Type: application/json" \
-    -d '{
-      "name": "'"${APP_NAME}"'",
-      "redirectUris": ["http://localhost:3000/api/auth/callback/zitadel"],
-      "postLogoutRedirectUris": ["http://localhost:3000"],
-      "responseTypes": ["OIDC_RESPONSE_TYPE_CODE"],
-      "grantTypes": ["OIDC_GRANT_TYPE_AUTHORIZATION_CODE", "OIDC_GRANT_TYPE_REFRESH_TOKEN"],
-      "appType": "OIDC_APP_TYPE_WEB",
-      "authMethodType": "OIDC_AUTH_METHOD_TYPE_NONE",
-      "accessTokenType": "OIDC_TOKEN_TYPE_JWT",
-      "idTokenRoleAssertion": true,
-      "idTokenUserinfoAssertion": true
-    }' \
-    | python3 -c "import sys,json; print(json.load(sys.stdin)['clientId'])")
-  echo "App created. Client ID: ${CLIENT_ID}"
-fi
-
-if [ -z "$CLIENT_ID" ]; then
-  echo "ERROR: Could not obtain Client ID."
-  exit 1
-fi
-
-# --- 4. Update .env ---
-if [ -f "$ENV_FILE" ]; then
-  if grep -q "^ZITADEL_CLIENT_ID=" "$ENV_FILE"; then
-    sed -i.bak "s|^ZITADEL_CLIENT_ID=.*|ZITADEL_CLIENT_ID=${CLIENT_ID}|" "$ENV_FILE"
-    rm -f "${ENV_FILE}.bak"
+  if [ -n "$client_id" ]; then
+    echo "App already exists. Client ID: ${client_id}"
   else
-    echo "ZITADEL_CLIENT_ID=${CLIENT_ID}" >> "$ENV_FILE"
+    echo "Creating OIDC application '${app_name}'..."
+    client_id=$(curl -s -X POST "${ZITADEL_HOST}/management/v1/projects/${PROJECT_ID}/apps/oidc" \
+      -H "${ZITADEL_HEADER}" -H "${AUTH}" -H "Content-Type: application/json" \
+      -d '{
+        "name": "'"${app_name}"'",
+        "redirectUris": ["'"${base_url}"'/api/auth/callback/zitadel"],
+        "postLogoutRedirectUris": ["'"${base_url}"'"],
+        "responseTypes": ["OIDC_RESPONSE_TYPE_CODE"],
+        "grantTypes": ["OIDC_GRANT_TYPE_AUTHORIZATION_CODE", "OIDC_GRANT_TYPE_REFRESH_TOKEN"],
+        "appType": "OIDC_APP_TYPE_WEB",
+        "authMethodType": "OIDC_AUTH_METHOD_TYPE_NONE",
+        "accessTokenType": "OIDC_TOKEN_TYPE_JWT",
+        "idTokenRoleAssertion": true,
+        "idTokenUserinfoAssertion": true
+      }' \
+      | python3 -c "import sys,json; print(json.load(sys.stdin)['clientId'])")
+    echo "App created. Client ID: ${client_id}"
   fi
-  echo "Updated ${ENV_FILE}"
-fi
+
+  if [ -z "$client_id" ]; then
+    echo "ERROR: Could not obtain Client ID for '${app_name}'."
+    exit 1
+  fi
+
+  # Update .env
+  if [ -f "$ENV_FILE" ]; then
+    if grep -q "^${env_var}=" "$ENV_FILE"; then
+      sed -i.bak "s|^${env_var}=.*|${env_var}=${client_id}|" "$ENV_FILE"
+      rm -f "${ENV_FILE}.bak"
+    else
+      echo "${env_var}=${client_id}" >> "$ENV_FILE"
+    fi
+    echo "Updated ${ENV_FILE}: ${env_var}=${client_id}"
+  fi
+}
+
+# --- 4. Create all three OIDC applications ---
+create_oidc_app "Nutrometra Web"            "http://localhost:3000" "ZITADEL_CLIENT_ID"
+create_oidc_app "Nutrometra Web - Patient"  "http://localhost:3001" "ZITADEL_CLIENT_ID_PATIENT"
+create_oidc_app "Nutrometra Web - Backoffice" "http://localhost:3002" "ZITADEL_CLIENT_ID_BACKOFFICE"
 
 echo ""
 echo "=== Zitadel OIDC setup complete ==="
-echo "Client ID: ${CLIENT_ID}"
+echo "3 applications configured for ports 3000, 3001, 3002"
