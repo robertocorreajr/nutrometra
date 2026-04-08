@@ -120,6 +120,56 @@ services:
       zitadel:
         condition: service_healthy
 
+  web-patient:
+    build:
+      context: ..
+      dockerfile: apps/web-patient/Dockerfile.dev
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:8081
+      NEXTAUTH_URL: http://localhost:3001
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      ZITADEL_ISSUER: ${ZITADEL_ISSUER}
+      ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID_PATIENT}
+      ZITADEL_CLIENT_SECRET: ${ZITADEL_CLIENT_SECRET_PATIENT}
+    volumes:
+      - ../apps/web-patient/src:/app/apps/web-patient/src
+      - ../apps/web-patient/public:/app/apps/web-patient/public
+      - ../packages/ui/src:/app/packages/ui/src
+      - ../packages/api-client/src:/app/packages/api-client/src
+      - ../packages/auth/src:/app/packages/auth/src
+    ports:
+      - "3001:3001"
+    depends_on:
+      api:
+        condition: service_started
+      zitadel:
+        condition: service_healthy
+
+  backoffice:
+    build:
+      context: ..
+      dockerfile: apps/backoffice/Dockerfile.dev
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:8081
+      NEXTAUTH_URL: http://localhost:3002
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      ZITADEL_ISSUER: ${ZITADEL_ISSUER}
+      ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID_BACKOFFICE}
+      ZITADEL_CLIENT_SECRET: ${ZITADEL_CLIENT_SECRET_BACKOFFICE}
+    volumes:
+      - ../apps/backoffice/src:/app/apps/backoffice/src
+      - ../apps/backoffice/public:/app/apps/backoffice/public
+      - ../packages/ui/src:/app/packages/ui/src
+      - ../packages/api-client/src:/app/packages/api-client/src
+      - ../packages/auth/src:/app/packages/auth/src
+    ports:
+      - "3002:3002"
+    depends_on:
+      api:
+        condition: service_started
+      zitadel:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:

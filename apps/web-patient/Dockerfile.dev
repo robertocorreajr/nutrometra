@@ -1,0 +1,26 @@
+FROM node:20-alpine
+
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
+WORKDIR /app
+
+# Copy monorepo root config
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+
+# Copy all package.json files for dependency resolution
+COPY apps/web-patient/package.json apps/web-patient/
+COPY packages/ui/package.json packages/ui/
+COPY packages/api-client/package.json packages/api-client/
+COPY packages/auth/package.json packages/auth/
+
+# Install all dependencies inside the container
+RUN pnpm install --frozen-lockfile
+
+# Copy full source (volumes override src dirs for hot-reload)
+COPY . .
+
+EXPOSE 3001
+
+WORKDIR /app/apps/web-patient
+
+CMD ["pnpm", "next", "dev", "-p", "3001", "-H", "0.0.0.0"]
