@@ -7,6 +7,7 @@ export { Input } from "./components/input"
 export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "./components/card"
 export { Skeleton } from "./components/skeleton"
 export { DataTable, type Column } from "./components/data-table"
+export { TabNav, type Tab } from "./components/tab-nav"
 
 // Layouts
 export { AppShell } from "./layouts/app-shell"
