@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -12,9 +13,8 @@ export function UpcomingAppointments() {
   const { data: professional } = useProfessionalMe()
   const professionalId = professional?.id ?? ""
 
-  const now = new Date()
-  const from = now.toISOString()
-  const to = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  const from = useMemo(() => new Date().toISOString(), [])
+  const to = useMemo(() => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), [])
 
   const { data: appointments, isLoading, isError } = useAppointments({
     professional_id: professionalId,
