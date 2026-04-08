@@ -8,6 +8,7 @@ import {
   Calendar,
   UtensilsCrossed,
   FileText,
+  CreditCard,
   Settings,
   type LucideIcon,
 } from "lucide-react"
@@ -26,6 +27,7 @@ const navItems: NavItem[] = [
   { label: "Agenda", href: "/agenda", icon: Calendar },
   { label: "Dietas", href: "/dietas", icon: UtensilsCrossed },
   { label: "Documentos", href: "/documentos", icon: FileText },
+  { label: "Assinatura", href: "/assinatura", icon: CreditCard },
   { label: "Configurações", href: "/configuracoes", icon: Settings },
 ]
 
