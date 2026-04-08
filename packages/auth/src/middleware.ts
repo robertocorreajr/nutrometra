@@ -3,7 +3,7 @@ import { withAuth } from "next-auth/middleware"
 export function createAuthMiddleware(publicPaths: string[] = []) {
   return withAuth({
     pages: {
-      signIn: "/auth/signin",
+      signIn: "/signin",
     },
     callbacks: {
       authorized({ token }) {

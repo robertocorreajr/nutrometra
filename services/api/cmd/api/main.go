@@ -255,6 +255,7 @@ func main() {
 		r.Use(authMW, resolverMW)
 
 		r.Get("/auth/me", identity.MeHandler)
+		r.Get("/auth/me/tenants", identity.MeTenantsHandler(tenancyRepo))
 
 		// Invite activation (auth only, no tenant required)
 		r.Post("/invites/activate", patHandler.ActivatePortalAccess)
