@@ -91,3 +91,21 @@ export function useSetServiceMode(professionalId: string) {
     },
   })
 }
+
+export function useProfessionals() {
+  return useQuery({
+    queryKey: ["professionals"],
+    queryFn: () => api.get<Professional[]>("/professionals"),
+  })
+}
+
+export function useCreateProfessional() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: Partial<Professional>) =>
+      api.post<Professional>("/professionals", data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["professionals"] })
+    },
+  })
+}

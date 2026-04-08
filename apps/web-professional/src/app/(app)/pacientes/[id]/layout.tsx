@@ -1,10 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { useParams, usePathname } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Mail } from "lucide-react"
 import { usePatient } from "@nutrometra/api-client/hooks"
-import { TabNav, LoadingState, ErrorState, type Tab } from "@nutrometra/ui"
+import { TabNav, LoadingState, ErrorState, Button, type Tab } from "@nutrometra/ui"
+import { InviteDialog } from "@/components/patient/invite-dialog"
 
 function StatusBadge({ active }: { active: boolean }) {
   return (
@@ -30,6 +32,7 @@ export default function PatientLayout({ children }: PatientLayoutProps) {
   const patientId = params.id
 
   const { data: patient, isLoading, isError, refetch } = usePatient(patientId)
+  const [showInvite, setShowInvite] = useState(false)
 
   if (isLoading) return <LoadingState lines={4} />
   if (isError || !patient) {
@@ -88,6 +91,14 @@ export default function PatientLayout({ children }: PatientLayoutProps) {
           </h1>
           <StatusBadge active={patient.active} />
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowInvite(true)}
+        >
+          <Mail className="h-4 w-4 mr-2" />
+          Enviar Convite
+        </Button>
       </div>
 
       {/* Tab navigation */}
@@ -95,6 +106,12 @@ export default function PatientLayout({ children }: PatientLayoutProps) {
 
       {/* Tab content */}
       <div className="mt-6">{children}</div>
+
+      <InviteDialog
+        patientId={patientId}
+        open={showInvite}
+        onClose={() => setShowInvite(false)}
+      />
     </div>
   )
 }
