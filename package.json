@@ -1,0 +1,23 @@
+{
+  "name": "nutrometra",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "dev:api": "cd services/api && go run ./cmd/api",
+    "dev:frontend": "turbo dev --filter='./apps/*'"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "@testing-library/user-event": "^14",
+    "@vitejs/plugin-react": "^4",
+    "jsdom": "^25",
+    "turbo": "^2",
+    "vitest": "^2"
+  },
+  "packageManager": "pnpm@9.15.4"
+}

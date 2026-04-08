@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: dev dev-detached dev-down migrate-up migrate-down test test-integration lint build setup setup-zitadel
+.PHONY: dev dev-detached dev-down migrate-up migrate-down test test-integration lint build setup setup-zitadel install-frontend dev-frontend build-frontend
 
 COMPOSE = docker compose --env-file .env -f infra/docker-compose.yml
 
@@ -57,3 +57,13 @@ setup:
 setup-zitadel:
 	@./infra/scripts/setup-zitadel.sh
 	@$(COMPOSE) up -d api --force-recreate
+
+# Frontend
+install-frontend:
+	pnpm install
+
+dev-frontend:
+	pnpm turbo dev --filter='./apps/*'
+
+build-frontend:
+	pnpm turbo build --filter='./apps/*'

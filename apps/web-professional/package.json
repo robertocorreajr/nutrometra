@@ -5,16 +5,30 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
+    "@hookform/resolvers": "^3",
+    "@nutrometra/api-client": "workspace:*",
+    "@nutrometra/auth": "workspace:*",
+    "@nutrometra/ui": "workspace:*",
+    "@tanstack/react-query": "^5",
+    "date-fns": "^3",
+    "lucide-react": "^0.460",
     "next": "14.2.5",
+    "next-auth": "^4",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-hook-form": "^7",
+    "zod": "^3"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
+    "autoprefixer": "^10",
+    "postcss": "^8",
+    "tailwindcss": "^3.4",
     "typescript": "^5"
   }
 }

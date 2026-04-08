@@ -40,6 +40,10 @@ func (f *fakeTenantRepo) IsMember(ctx context.Context, tenantID, userID uuid.UUI
 	return f.members[key], nil
 }
 
+func (f *fakeTenantRepo) ListByUser(ctx context.Context, userID uuid.UUID) ([]domain.Tenant, error) {
+	return nil, nil
+}
+
 func newFakeRepo(tenants ...*domain.Tenant) *fakeTenantRepo {
 	m := make(map[uuid.UUID]*domain.Tenant, len(tenants))
 	for _, t := range tenants {

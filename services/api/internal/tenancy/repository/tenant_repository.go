@@ -15,6 +15,7 @@ type TenantRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Tenant, error)
 	GetBySlug(ctx context.Context, slug string) (*domain.Tenant, error)
 	IsMember(ctx context.Context, tenantID, userID uuid.UUID) (bool, error)
+	ListByUser(ctx context.Context, userID uuid.UUID) ([]domain.Tenant, error)
 }
 
 type postgresRepository struct {
@@ -72,4 +73,33 @@ func (r *postgresRepository) IsMember(ctx context.Context, tenantID, userID uuid
 		return false, err
 	}
 	return exists, nil
+}
+
+const queryListByUser = `
+SELECT t.id, t.type, t.legal_name, t.display_name, t.slug, t.status, t.timezone, t.locale, t.trial_ends_at, t.created_at, t.updated_at
+FROM tenants t
+JOIN tenant_users tu ON tu.tenant_id = t.id
+WHERE tu.user_id = $1 AND tu.status = 'active' AND t.status = 'active'
+ORDER BY t.display_name`
+
+func (r *postgresRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]domain.Tenant, error) {
+	rows, err := r.pool.Query(ctx, queryListByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tenants []domain.Tenant
+	for rows.Next() {
+		var t domain.Tenant
+		if err := rows.Scan(
+			&t.ID, &t.Type, &t.LegalName, &t.DisplayName, &t.Slug,
+			&t.Status, &t.Timezone, &t.Locale, &t.TrialEndsAt,
+			&t.CreatedAt, &t.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		tenants = append(tenants, t)
+	}
+	return tenants, rows.Err()
 }

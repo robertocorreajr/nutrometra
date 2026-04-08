@@ -45,6 +45,10 @@ func (s *stubTenantRepo) IsMember(ctx context.Context, tenantID, userID uuid.UUI
 	return s.members[tenantID.String()+":"+userID.String()], nil
 }
 
+func (s *stubTenantRepo) ListByUser(ctx context.Context, userID uuid.UUID) ([]domain.Tenant, error) {
+	return nil, nil
+}
+
 func emptyUsecase() usecase.TenantUsecase {
 	return usecase.NewTenantUsecase(&stubTenantRepo{
 		tenants: make(map[uuid.UUID]*domain.Tenant),
