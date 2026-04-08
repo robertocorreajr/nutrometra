@@ -10,6 +10,7 @@ export function useAuth() {
     isAuthenticated: status === "authenticated",
     isLoading: status === "loading",
     tenantId: session?.tenantId ?? null,
+    patientId: session?.patientId ?? null,
     roles: session?.roles ?? [],
   }
 }
