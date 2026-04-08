@@ -2,6 +2,8 @@ import { AppShell } from "@nutrometra/ui"
 import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
 
+export const dynamic = "force-dynamic"
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AppShell sidebar={<Sidebar />} header={<Header />}>
